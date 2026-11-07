@@ -15,7 +15,7 @@ import { navigate } from '../../lib/router.ts';
 
 function entryLabel(e: FoodEntry) {
   if (e.source === 'quick') return 'Agregado rápido';
-  if (e.portionLabel) return `${fmt1(e.qty ?? 1)} × ${e.portionLabel}`;
+  if (e.portionLabel) return (e.qty ?? 1) === 1 ? e.portionLabel : `${fmt1(e.qty ?? 1)} × ${e.portionLabel.replace(/^1 /, '')}`;
   return `${fmt(e.amount)} ${e.unit}`;
 }
 

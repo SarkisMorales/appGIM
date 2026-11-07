@@ -164,17 +164,19 @@ export function Rings({ rings, size = 180, stroke = 14, gap = 4, children }: { r
           return (
             <g key={i}>
               <circle cx={c} cy={c} r={radius} fill="none" stroke={r.track ?? 'var(--surface-3)'} strokeWidth={stroke} />
-              <circle
-                cx={c}
-                cy={c}
-                r={radius}
-                fill="none"
-                stroke={r.color}
-                strokeWidth={stroke}
-                strokeLinecap="round"
-                strokeDasharray={`${circ * pct} ${circ}`}
-                style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(.2,.9,.25,1)' }}
-              />
+              {pct > 0 && (
+                <circle
+                  cx={c}
+                  cy={c}
+                  r={radius}
+                  fill="none"
+                  stroke={r.color}
+                  strokeWidth={stroke}
+                  strokeLinecap="round"
+                  strokeDasharray={`${circ * pct} ${circ}`}
+                  style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(.2,.9,.25,1)' }}
+                />
+              )}
             </g>
           );
         })}

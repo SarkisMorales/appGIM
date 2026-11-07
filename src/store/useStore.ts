@@ -238,7 +238,7 @@ export const useUI = create<UIState>()((set) => ({
   toasts: [],
   toast: (text, opts) => {
     const id = uid();
-    set((s) => ({ toasts: [...s.toasts.slice(-2), { id, text, ...opts }] }));
+    set((s) => ({ toasts: [...s.toasts.slice(-1), { id, text, ...opts }] }));
     setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), opts?.action ? 5000 : 2600);
   },
   dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),

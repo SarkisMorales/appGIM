@@ -137,9 +137,9 @@ export default function RoutineDetail({ id }: { id?: string }) {
         {r.basedOn && <p className="relative mt-2 text-xs text-ink-3">Basada en: {r.basedOn}</p>}
         <div className="relative mt-4 grid grid-cols-2 gap-2">
           <Stat label="Por sesión" value={fmt(sum.avgMinutes)} unit="min" icon={<Clock size={12} />} />
-          <Stat label="Quema / sesión" value={fmt(sum.avgKcal)} unit="kcal" icon={<Flame size={12} />} tone="var(--fit)" />
-          <Stat label="Proteína post" value={prot} unit="g" icon={<Beef size={12} />} tone="var(--pro)" />
-          <Stat label="Animaciones" value={`${sum.animated}/${sum.totalExercises}`} unit="sí" icon={<Film size={12} />} tone="var(--bal)" />
+          <Stat label="Quema / sesión" value={fmt(sum.avgKcal)} unit="kcal" icon={<Flame size={12} className="text-fit" />} />
+          <Stat label="Proteína post" value={prot} unit="g" icon={<Beef size={12} className="text-pro" />} />
+          <Stat label="Con animación" value={`${sum.animated}/${sum.totalExercises}`} unit="ejercicios" icon={<Film size={12} />} />
         </div>
         <div className="relative mt-2 rounded-2xl bg-surface-2 p-3 text-[13px] text-ink-2">
           <b>{r.daysPerWeek} días/semana</b> · ~{fmt(sum.weeklyMinutes)} min y ~{fmt(sum.weeklyKcal)} kcal por semana. Tu proteína diaria: <b className="text-pro">{base.protein} g</b> ({base.proteinPerKg} g/kg).

@@ -57,7 +57,7 @@ export function RoutineCard({ r }: { r: Routine }) {
           </span>
           <span className="flex items-center gap-1">
             <Film size={13} className="text-bal" />
-            {sum.animated}/{sum.totalExercises}
+            {sum.animated === sum.totalExercises ? 'Animada' : `${sum.animated}/${sum.totalExercises} animados`}
           </span>
           <span className="text-ink-3">{r.daysPerWeek} días/sem</span>
         </div>
@@ -90,7 +90,7 @@ function RoutinesTab() {
         value={place}
         onChange={setPlace}
         options={[
-          { value: 'todos', label: 'Cualquier lugar' },
+          { value: 'todos', label: 'Todos' },
           { value: 'casa', label: '🏠 Casa' },
           { value: 'gimnasio', label: '🏋️ Gimnasio' },
         ]}
@@ -244,7 +244,8 @@ function HistoryTab() {
   const perDay = new Map<string, number>();
   workouts.forEach((w) => perDay.set(w.date, (perDay.get(w.date) || 0) + w.durationMin));
   const level = (m: number) => (m === 0 ? 0 : m < 20 ? 1 : m < 40 ? 2 : m < 60 ? 3 : 4);
-  const COLORS = ['var(--surface-3)', '#ffd2c2', '#ffa680', '#ff7a4d', '#ff4d24'];
+  // Escala secuencial de un solo tono (más intenso = más minutos); funciona en claro y oscuro.
+  const COLORS = ['var(--surface-3)', ...[30, 55, 78, 100].map((p) => `color-mix(in oklab, var(--d-ex) ${p}%, var(--surface-3))`)];
 
   // Récords (1RM estimado)
   const prs = new Map<string, { name: string; orm: number; weight: number; reps: number; date: string }>();

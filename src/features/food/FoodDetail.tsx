@@ -127,10 +127,11 @@ export function FoodDetail({
               { l: 'Grasas', v: m.fat, c: 'var(--fat)' },
             ].map((x) => (
               <div key={x.l}>
-                <div className="num text-lg font-extrabold" style={{ color: x.c }}>
-                  {fmt1(x.v)}
+                <div className="num text-lg font-extrabold">{fmt1(x.v)}</div>
+                <div className="flex items-center justify-end gap-1 text-[11px] font-semibold text-ink-3">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: x.c }} />
+                  {x.l} g
                 </div>
-                <div className="text-[11px] font-semibold text-ink-3">{x.l} g</div>
               </div>
             ))}
           </div>

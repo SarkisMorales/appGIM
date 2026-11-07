@@ -373,11 +373,17 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
         <Card className="mt-3 border-fit/30">
           <div className="text-xs font-bold uppercase tracking-wide text-fit">Conectado con tu comida</div>
           <div className="mt-2 space-y-2 text-[14px]">
-            <div className="flex items-center gap-2">
-              <Flame size={18} className="text-fit" /> Tu objetivo de hoy sube <b>+{fmt(summary.bonus)} kcal</b>
+            <div className="flex items-start gap-2">
+              <Flame size={18} className="mt-0.5 shrink-0 text-fit" />
+              <span>
+                Tu objetivo de hoy sube <b>+{fmt(summary.bonus)} kcal</b>
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Beef size={18} className="text-pro" /> Recargá con <b>~{prot} g de proteína</b> y <b>~{fmt(Math.max(20, Math.round((summary.bonus * 0.5) / 4)))} g de carbohidratos</b>
+            <div className="flex items-start gap-2">
+              <Beef size={18} className="mt-0.5 shrink-0 text-pro" />
+              <span>
+                Recargá con <b>~{prot} g de proteína</b> y <b>~{fmt(Math.max(20, Math.round((summary.bonus * 0.5) / 4)))} g de carbohidratos</b>
+              </span>
             </div>
             <p className="text-xs text-ink-3">Ej.: yogur griego + banana, o sándwich de pollo, o licuado con leche y avena.</p>
           </div>

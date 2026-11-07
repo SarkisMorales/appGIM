@@ -198,20 +198,20 @@ export default function Onboarding() {
               </div>
               {goal !== 'mantener' && (
                 <div className="mt-5">
-                  <div className="mb-2 text-[13px] font-semibold text-ink-2">Ritmo por semana</div>
+                  <div className="mb-2 text-[13px] font-semibold text-ink-2">Ritmo (kg por semana)</div>
                   <Segmented
                     value={String(pace)}
                     onChange={(v) => setPace(Number(v))}
                     options={
                       goal === 'bajar'
                         ? [
-                            { value: '0.25', label: 'Suave · 0,25 kg' },
-                            { value: '0.5', label: 'Ideal · 0,5 kg' },
-                            { value: '0.75', label: 'Rápido · 0,75 kg' },
+                            { value: '0.25', label: 'Suave 0,25' },
+                            { value: '0.5', label: 'Ideal 0,5' },
+                            { value: '0.75', label: 'Rápido 0,75' },
                           ]
                         : [
-                            { value: '0.25', label: 'Limpio · 0,25 kg' },
-                            { value: '0.5', label: 'Rápido · 0,5 kg' },
+                            { value: '0.25', label: 'Limpio 0,25' },
+                            { value: '0.5', label: 'Rápido 0,5' },
                           ]
                     }
                   />
@@ -282,10 +282,11 @@ export default function Onboarding() {
                     { l: 'Grasas', v: t.fat, c: 'var(--fat)' },
                   ].map((m) => (
                     <div key={m.l} className="rounded-2xl bg-surface-2 p-3">
-                      <div className="text-xs font-semibold text-ink-3">{m.l}</div>
-                      <div className="num text-xl font-extrabold" style={{ color: m.c }}>
-                        {m.v} g
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-3">
+                        <span className="h-2 w-2 rounded-full" style={{ background: m.c }} />
+                        {m.l}
                       </div>
+                      <div className="num text-xl font-extrabold">{m.v} g</div>
                       {m.s && <div className="text-[11px] text-ink-3">{m.s}</div>}
                     </div>
                   ))}
