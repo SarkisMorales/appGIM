@@ -1,0 +1,313 @@
+@import "tailwindcss";
+@import "@fontsource-variable/plus-jakarta-sans";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Tokens de diseño ---------- */
+:root {
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --surface-2: #f1f3f7;
+  --surface-3: #e8ebf1;
+  --line: #e2e6ed;
+  --ink: #0e1422;
+  --ink-2: #4a5468;
+  --ink-3: #8a93a6;
+
+  /* Módulos */
+  --food: #10b26c;
+  --food-2: #2fd087;
+  --food-soft: #e3f7ee;
+  --fit: #ff6436;
+  --fit-2: #ff8f4d;
+  --fit-soft: #ffece4;
+  --bal: #6a5cff;
+  --bal-2: #8f7bff;
+  --bal-soft: #ecebff;
+
+  /* Datos (validados para daltonismo: validate_palette.js, modo claro) */
+  --d-kcal: #10b26c;
+  --d-ex: #ff6436;
+  --pro: #7c5cff;
+  --carb: #c98a00;
+  --fat: #1f9ad6;
+  --fib: #7c9a2d;
+  --water: #2f7cf6;
+  --danger: #e5484d;
+  --warn: #f59e0b;
+  --ok: #10b26c;
+
+  /* Figura de ejercicios */
+  --fig-body: #1c2436;
+  --fig-hl: #ff6436;
+  --fig-prop: #8a93a6;
+  --fig-prop-2: #c9cfda;
+  --fig-ground: #d9dee7;
+
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.06);
+  --shadow-pop: 0 10px 40px rgb(16 24 40 / 0.18);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0a0c11;
+  --surface: #131720;
+  --surface-2: #1a1f2b;
+  --surface-3: #232937;
+  --line: #262c3a;
+  --ink: #f2f4f8;
+  --ink-2: #aab2c3;
+  --ink-3: #6c7589;
+
+  --food: #2fd087;
+  --food-2: #5ee3a6;
+  --food-soft: #12291f;
+  --fit: #ff7a4d;
+  --fit-2: #ffa066;
+  --fit-soft: #2e1a14;
+  --bal: #8f7bff;
+  --bal-2: #ab9cff;
+  --bal-soft: #1f1c3a;
+
+  /* Datos (validados contra la superficie oscura #131720) */
+  --d-kcal: #1fa36a;
+  --d-ex: #e85d2f;
+  --pro: #8f78f5;
+  --carb: #b88412;
+  --fat: #2f9be3;
+  --fib: #a6c45a;
+  --water: #5a9bff;
+  --danger: #ff6369;
+
+  --fig-body: #e9edf5;
+  --fig-hl: #ff7a4d;
+  --fig-prop: #8891a5;
+  --fig-prop-2: #3a4252;
+  --fig-ground: #2a3140;
+
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px rgb(0 0 0 / 0.25);
+  --shadow-pop: 0 16px 48px rgb(0 0 0 / 0.55);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-food: var(--food);
+  --color-food-2: var(--food-2);
+  --color-food-soft: var(--food-soft);
+  --color-fit: var(--fit);
+  --color-fit-2: var(--fit-2);
+  --color-fit-soft: var(--fit-soft);
+  --color-bal: var(--bal);
+  --color-bal-2: var(--bal-2);
+  --color-bal-soft: var(--bal-soft);
+  --color-d-kcal: var(--d-kcal);
+  --color-d-ex: var(--d-ex);
+  --color-pro: var(--pro);
+  --color-carb: var(--carb);
+  --color-fat: var(--fat);
+  --color-fib: var(--fib);
+  --color-water: var(--water);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+/* ---------- Base ---------- */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+body {
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
+  font-feature-settings: "cv11", "ss01";
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+input,
+select,
+textarea {
+  font: inherit;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+:focus-visible {
+  outline: 2px solid var(--bal);
+  outline-offset: 2px;
+}
+
+/* Áreas seguras (notch) */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+
+/* ---------- Gradientes de módulo ---------- */
+.grad-food {
+  background-image: linear-gradient(135deg, var(--food) 0%, var(--food-2) 100%);
+}
+.grad-fit {
+  background-image: linear-gradient(135deg, var(--fit) 0%, #ff4d6d 100%);
+}
+.grad-bal {
+  background-image: linear-gradient(135deg, var(--bal) 0%, #4f8cff 100%);
+}
+.grad-hero {
+  background-image: radial-gradient(120% 120% at 0% 0%, color-mix(in oklab, var(--bal) 22%, transparent) 0%, transparent 55%),
+    radial-gradient(120% 120% at 100% 0%, color-mix(in oklab, var(--fit) 18%, transparent) 0%, transparent 50%),
+    radial-gradient(120% 120% at 50% 100%, color-mix(in oklab, var(--food) 16%, transparent) 0%, transparent 60%);
+}
+.text-grad-bal {
+  background-image: linear-gradient(135deg, var(--bal) 0%, #4f8cff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Animaciones de UI ---------- */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.anim-sheet {
+  animation: sheet-up 0.32s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.anim-fade {
+  animation: fade-in 0.2s ease-out both;
+}
+.anim-pop {
+  animation: pop-in 0.22s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.anim-rise {
+  animation: rise 0.35s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-sheet,
+  .anim-fade,
+  .anim-pop,
+  .anim-rise {
+    animation: none;
+  }
+  .pulse-ring::after {
+    animation: none;
+  }
+}
+
+/* Barra de scroll discreta */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* Figura de ejercicios (SVG generado) */
+.fig-body {
+  stroke: var(--fig-body);
+}
+.fig-hl {
+  stroke: var(--fig-hl);
+}
+.fig-head {
+  fill: var(--fig-body);
+}
+.fig-far {
+  opacity: 0.42;
+}
+.fig-prop {
+  stroke: var(--fig-prop);
+  fill: none;
+}
+.fig-prop-fill {
+  fill: var(--fig-prop-2);
+  stroke: var(--fig-prop);
+}
+.fig-metal {
+  fill: var(--fig-prop);
+}
+.fig-ground {
+  stroke: var(--fig-ground);
+}

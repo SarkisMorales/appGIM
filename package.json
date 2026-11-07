@@ -1,0 +1,33 @@
+{
+  "name": "appgim",
+  "private": true,
+  "version": "1.0.0",
+  "description": "appGIM: comida + entrenamiento en una sola app. PWA gratuita, offline y sin cuentas.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/plus-jakarta-sans": "5.3.0",
+    "barcode-detector": "3.2.3",
+    "lucide-react": "1.70.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zustand": "5.1.0",
+    "zxing-wasm": "3.1.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "tailwindcss": "4.3.5",
+    "typescript": "5.9.3",
+    "vite": "8.3.6",
+    "vite-plugin-pwa": "2.0.0"
+  }
+}
