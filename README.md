@@ -89,8 +89,8 @@ Las rutinas se basan en: Klika y Jordan (2013, “7 minutos”), StrongLifts 5×
 
 ## Publicarla gratis (GitHub Pages)
 
-1. En GitHub: **Settings → Pages → Build and deployment → Source: “GitHub Actions”**.
-2. Cada vez que hay un cambio en `main`, el workflow `.github/workflows/deploy.yml` corre los tests, compila y publica.
+1. En GitHub: **Settings → Pages → Build and deployment → Source: “Deploy from a branch”**, rama **`gh-pages`**, carpeta **`/ (root)`** → **Save** (solo una vez).
+2. Cada vez que hay un cambio en `main`, el workflow `.github/workflows/deploy.yml` corre los tests, compila y sube el resultado a la rama `gh-pages`.
 3. La app queda en `https://<tu-usuario>.github.io/appGIM/`.
 
 ## Desarrollo
