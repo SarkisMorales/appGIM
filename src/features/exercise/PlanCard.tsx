@@ -1,7 +1,7 @@
 import { CalendarDays, CheckCircle2, Clock, Flame, Play, Beef, Moon } from 'lucide-react';
 import { useStore, useUI } from '../../store/useStore.ts';
 import { planForDate, useRoutines } from '../../store/derived.ts';
-import { estimateSession, postWorkoutProtein, sessionExerciseIds } from '../../lib/training.ts';
+import { estimateSession, sessionExerciseIds } from '../../lib/training.ts';
 import { getExercise } from '../../data/exercises.ts';
 import { Button, Card, cx } from '../../components/ui.tsx';
 import { ExerciseFigure } from '../../components/figure/ExerciseFigure.tsx';
@@ -61,7 +61,7 @@ export function PlanCard({ date }: { date?: string }) {
               </span>
               <span className="flex items-center gap-1">
                 <Beef size={14} className="text-pro" />
-                {postWorkoutProtein(profile.weightKg)} g prot. después
+                {est.proteinG} g prot. después
               </span>
             </div>
           )}

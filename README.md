@@ -27,6 +27,32 @@ App web gratuita (PWA) para registrar **lo que comés** y **lo que entrenás**, 
 | 🔥 Intermedio | Torso / Pierna 4 días · Push / Pull / Legs · HIIT 40/20 · Calistenia intermedia · Mancuernas en casa |
 | 🏆 Avanzado / Pro | PHUL · PPL hipertrofia 6 días · Fuerza 5/3/1 · Calistenia avanzada · Metcon funcional · Atleta híbrido (carrera + fuerza) |
 
+Valores calculados por la app para una persona de **70 kg** (se recalculan con tu peso):
+
+| Nivel | Rutina | Lugar | Días/sem | Min/sesión | kcal/sesión | kcal/semana | Proteína post | Animación |
+|---|---|---|---|---|---|---|---|---|
+| 🌱 Principiante | Primeros pasos en casa | Casa | 3 | 29–30 | 128–132 | ~390 | 21 g | ✅ 12/12 |
+| 🌱 Principiante | Rutina científica de 7 minutos | Casa | 3 | 20 | 134 | ~400 | 20 g | ✅ 12/12 |
+| 🌱 Principiante | Gimnasio inicial con máquinas | Gimnasio | 3 | 34 | 137–140 | ~420 | 21 g | ✅ 12/12 |
+| 🌱 Principiante | Fuerza base 5×5 | Gimnasio | 3 | 34–43 | 184–238 | ~660 | 21 g | ✅ 5/5 |
+| 🌱 Principiante | Movilidad y core | Casa | 2 | 19 | 56 | ~110 | 20 g | ✅ 8/8 |
+| 🌱 Principiante | Caminar–trotar: inicio al running | Casa | 3 | 31 | 191 | ~570 | 20 g | ✅ 2/2 |
+| 🔥 Intermedio | Torso / Pierna 4 días | Gimnasio | 4 | 37–45 | 203–250 | ~930 | 21–28 g | ✅ 24/24 |
+| 🔥 Intermedio | Push / Pull / Legs | Gimnasio | 3 | 38–42 | 207–232 | ~670 | 21–28 g | ✅ 17/17 |
+| 🔥 Intermedio | HIIT quema grasa 40/20 | Casa | 3 | 31 | 230 | ~690 | 20 g | ✅ 8/8 |
+| 🔥 Intermedio | Calistenia intermedia | Casa | 3 | 47–50 | 326–349 | ~1020 | 28 g | ✅ 11/11 |
+| 🔥 Intermedio | Mancuernas en casa | Casa | 3 | 41–46 | 167–186 | ~540 | 28 g | ✅ 12/12 |
+| 🏆 Avanzado | PHUL: potencia + hipertrofia | Gimnasio | 4 | 48–56 | 308–367 | ~1340 | 28 g | ✅ 22/22 |
+| 🏆 Avanzado | PPL hipertrofia 6 días | Gimnasio | 6 | 43–49 | 281–323 | ~1810 | 28 g | ✅ 29/29 |
+| 🏆 Avanzado | Fuerza 5/3/1 | Gimnasio | 4 | 37 | 229–232 | ~930 | 28 g | ✅ 8/8 |
+| 🏆 Avanzado | Calistenia avanzada | Casa | 4 | 46–54 | 354–430 | ~1570 | 28 g | ✅ 10/10 |
+| 🏆 Avanzado | Metcon funcional | Gimnasio | 3 | 35 | 280 | ~840 | 20 g | ✅ 6/6 |
+| 🏆 Avanzado | Atleta híbrido: carrera + fuerza | Casa | 4 | 46–53 | 350–428 | ~1550 | 20–28 g | ✅ 9/9 |
+
+- **Calorías**: MET de la sesión (Compendio 2024) × peso × duración. La **duración** sale de series × repeticiones × ~3 s + descansos + cambios + calentamiento.
+- **Proteína post‑entreno**: 0,25 g/kg (movilidad/cardio), 0,30 g/kg (fuerza moderada) o 0,40 g/kg (fuerza intensa o de mucho volumen), según el rango de la ISSN.
+- **Animación**: todos los ejercicios tienen animación propia (figura SVG), sin depender de internet ni de servicios pagos.
+
 - **Entrenamiento guiado**: animación grande, series y repeticiones, registro de peso por serie (“la última vez hiciste…” y sugerencia de progresión), temporizadores de trabajo/descanso, pitidos 3‑2‑1, **voz guía en español**, vibración y pantalla siempre encendida.
 - **Plan semanal** (“Hoy te toca…”), historial con mapa de calor, récords (1RM estimado) y **creador de rutinas propias**.
 - **Actividades rápidas**: caminar, correr, bici, natación, fútbol, pádel, tenis, básquet, vóley, boxeo, yoga, baile, soga… con METs oficiales.

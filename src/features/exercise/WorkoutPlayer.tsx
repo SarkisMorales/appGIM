@@ -4,7 +4,7 @@ import type { ExerciseLog, SetLog } from '../../types.ts';
 import { useStore, useUI } from '../../store/useStore.ts';
 import { findRoutine } from '../../store/derived.ts';
 import { getExercise } from '../../data/exercises.ts';
-import { avgReps, buildSteps, estimateSession, kcalFromMet, netKcalFromMet, postWorkoutProtein, repsLabel, type Step } from '../../lib/training.ts';
+import { avgReps, buildSteps, estimateSession, kcalFromMet, netKcalFromMet, repsLabel, type Step } from '../../lib/training.ts';
 import { ExerciseFigure } from '../../components/figure/ExerciseFigure.tsx';
 import { Button, Card, Empty, Sheet, Stepper, cx } from '../../components/ui.tsx';
 import { ExerciseInfo } from './ExerciseDetail.tsx';
@@ -257,6 +257,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
       netKcal: Math.round(summary.net),
       exercises: summary.exLogs,
       volumeKg: Math.round(summary.volume),
+      proteinG: est!.proteinG,
       feeling,
     });
     advancePlan(routine.id);
@@ -339,7 +340,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
   }
 
   if (phase === 'done' && summary) {
-    const prot = postWorkoutProtein(profile.weightKg);
+    const prot = est!.proteinG;
     return (
       <div className="pt-safe mx-auto min-h-dvh max-w-lg px-4 pb-8">
         <div className="anim-pop pt-8 text-center">

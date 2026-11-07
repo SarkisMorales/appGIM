@@ -119,7 +119,7 @@ export function Insights({ day }: { day: DayData }) {
   const isToday = day.date === todayISO();
 
   if (day.workouts.length) {
-    const prot = postWorkoutProtein(kg);
+    const prot = Math.max(...day.workouts.map((w) => w.proteinG ?? postWorkoutProtein(kg, w.met >= 5 ? 0.4 : w.met >= 3.2 && w.kind === 'rutina' ? 0.3 : 0.25)));
     items.push(
       <Insight key="ex" icon={<Flame size={18} />} tone="var(--fit)" title={`Entrenaste ${fmtMinutes(day.exerciseMin)} y quemaste ~${fmt(day.exerciseKcal)} kcal`}>
         Sumamos <b className="text-fit">+{fmt(t.bonus)} kcal</b> a tu objetivo de hoy (+{t.bonusCarbs} g de carbohidratos y +{t.bonusFat} g de grasas). Para recuperar, apuntá a <b>{prot} g de proteína</b> en tu próxima comida.

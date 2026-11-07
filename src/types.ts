@@ -265,6 +265,8 @@ export interface Workout {
   netKcal: number;
   exercises?: ExerciseLog[];
   volumeKg?: number;
+  /** Proteína post-entreno recomendada para esta sesión (g). */
+  proteinG?: number;
   feeling?: number;
   notes?: string;
 }

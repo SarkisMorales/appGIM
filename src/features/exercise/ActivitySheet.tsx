@@ -20,7 +20,7 @@ export default function ActivitySheet({ open, onClose, date }: { open: boolean; 
 
   const pick = (a: Activity) => {
     setAct(a);
-    setOpt(Math.min(1, a.options.length - 1));
+    setOpt(a.options.length >= 3 ? 1 : 0);
     setMin(a.defaultMin);
   };
   const list = q.trim() ? searchBy(ACTIVITIES, q, (a) => a.name, (a) => a.options.map((o) => o.label).join(' ')) : ACTIVITIES;

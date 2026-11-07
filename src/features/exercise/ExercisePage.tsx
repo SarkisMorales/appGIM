@@ -6,7 +6,7 @@ import { useRoutines } from '../../store/derived.ts';
 import { LEVELS } from '../../data/routines.ts';
 import { EXERCISES, MUSCLE_LABEL, getExercise } from '../../data/exercises.ts';
 import { hasAnim } from '../../data/animations.ts';
-import { oneRepMax, postWorkoutProtein, summarizeRoutine } from '../../lib/training.ts';
+import { oneRepMax, summarizeRoutine } from '../../lib/training.ts';
 import { searchBy } from '../../lib/search.ts';
 import { Badge, Button, Card, Chip, Empty, PageHeader, SectionTitle, Segmented, cx, inputCls } from '../../components/ui.tsx';
 import { ExerciseFigure } from '../../components/figure/ExerciseFigure.tsx';
@@ -53,7 +53,7 @@ export function RoutineCard({ r }: { r: Routine }) {
           </span>
           <span className="flex items-center gap-1">
             <Beef size={13} className="text-pro" />
-            {postWorkoutProtein(kg)} g
+            {sum.proteinMin === sum.proteinMax ? sum.proteinMin : `${sum.proteinMin}–${sum.proteinMax}`} g
           </span>
           <span className="flex items-center gap-1">
             <Film size={13} className="text-bal" />

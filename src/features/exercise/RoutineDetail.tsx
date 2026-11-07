@@ -5,7 +5,7 @@ import { useStore, useUI } from '../../store/useStore.ts';
 import { findRoutine, useDay } from '../../store/derived.ts';
 import { EQUIPMENT_LABEL, getExercise } from '../../data/exercises.ts';
 import { hasAnim } from '../../data/animations.ts';
-import { estimateSession, postWorkoutProtein, repsLabel, summarizeRoutine } from '../../lib/training.ts';
+import { estimateSession, repsLabel, summarizeRoutine } from '../../lib/training.ts';
 import { baseTargets } from '../../lib/nutrition.ts';
 import { Badge, Button, Card, Empty, PageHeader, SectionTitle, Segmented, Sheet, Stat, cx } from '../../components/ui.tsx';
 import { ExerciseFigure } from '../../components/figure/ExerciseFigure.tsx';
@@ -113,7 +113,7 @@ export default function RoutineDetail({ id }: { id?: string }) {
   const session = r.sessions[Math.min(si, r.sessions.length - 1)];
   const est = estimateSession(session, kg, getExercise);
   const lv = levelInfo(r.level);
-  const prot = postWorkoutProtein(kg);
+  const prot = est.proteinG;
   const base = baseTargets(profile);
   const bonus = Math.round(est.netKcal * profile.exerciseBack);
   const isPlan = plan?.routineId === r.id;
@@ -247,7 +247,7 @@ export default function RoutineDetail({ id }: { id?: string }) {
             <b>Tiempo:</b> series × (repeticiones × ~3 s + preparación) + descansos + cambios entre ejercicios + calentamiento.
           </p>
           <p>
-            <b>Proteína:</b> 0,3 g/kg después de entrenar (ISSN: 0,25–0,40 g/kg o 20–40 g por comida) dentro de tu total diario de {base.protein} g.
+            <b>Proteína:</b> {String(est.proteinPerKg).replace('.', ',')} g/kg después de esta sesión según su intensidad (ISSN: 0,25–0,40 g/kg o 20–40 g por comida), dentro de tu total diario de {base.protein} g.
           </p>
         </Card>
       )}

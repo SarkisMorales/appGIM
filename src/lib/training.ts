@@ -65,6 +65,27 @@ export interface SessionEstimate {
   avgMet: number;
   sets: number;
   exercises: number;
+  /** g/kg de proteína recomendados después de la sesión (0,25–0,40 según intensidad). */
+  proteinPerKg: number;
+  /** Gramos de proteína recomendados después de la sesión. */
+  proteinG: number;
+}
+
+/**
+ * Dosis de proteína post-entreno según la sesión (ISSN 2017: 0,25–0,40 g/kg por toma).
+ * - Movilidad o cardio sin fuerza: 0,25 g/kg.
+ * - Fuerza moderada: 0,30 g/kg.
+ * - Fuerza intensa o de mucho volumen (MET ≥ 5 o 20+ series): 0,40 g/kg
+ *   (tras entrenamiento de cuerpo completo, 40 g estimulan más síntesis que 20 g: Macnaughton et al., 2016).
+ */
+export function proteinFactor(avgMet: number, sets: number, hasStrength: boolean): number {
+  if (!hasStrength || avgMet < 3.2) return 0.25;
+  if (avgMet >= 5 || sets >= 20) return 0.4;
+  return 0.3;
+}
+
+export function proteinDose(kg: number, perKg: number): number {
+  return Math.round(Math.min(40, Math.max(20, perKg * kg)));
 }
 
 export function estimateSession(s: Session, kg: number, getEx: ExLookup): SessionEstimate {
@@ -86,6 +107,8 @@ export function estimateSession(s: Session, kg: number, getEx: ExLookup): Sessio
   const metMin = segs.reduce((a, x) => a + (x.met * x.sec) / 60, 0);
   const avgMet = totalSec ? metMin / (totalSec / 60) : s.met;
   const minutes = totalSec / 60;
+  const hasStrength = s.blocks.some((b) => b.type === 'sets' && getEx(b.ex)?.category === 'fuerza');
+  const proteinPerKg = proteinFactor(avgMet, sets, hasStrength);
   return {
     totalSec,
     minutes,
@@ -94,10 +117,14 @@ export function estimateSession(s: Session, kg: number, getEx: ExLookup): Sessio
     avgMet,
     sets,
     exercises: exIds.size,
+    proteinPerKg,
+    proteinG: proteinDose(kg, proteinPerKg),
   };
 }
 
 export interface RoutineSummary {
+  proteinMin: number;
+  proteinMax: number;
   avgMinutes: number;
   avgKcal: number;
   avgNetKcal: number;
@@ -122,6 +149,8 @@ export function summarizeRoutine(r: Routine, kg: number, getEx: ExLookup, hasAni
   r.sessions.forEach((s) => s.blocks.forEach((b) => (b.type === 'sets' ? ids.add(b.ex) : b.items.forEach((i) => ids.add(i.ex)))));
   const animated = [...ids].filter((id) => hasAnim(id)).length;
   return {
+    proteinMin: Math.min(...perSession.map((e) => e.proteinG)),
+    proteinMax: Math.max(...perSession.map((e) => e.proteinG)),
     avgMinutes: avg((e) => e.minutes),
     avgKcal: avg((e) => e.kcal),
     avgNetKcal: avg((e) => e.netKcal),
@@ -135,8 +164,8 @@ export function summarizeRoutine(r: Routine, kg: number, getEx: ExLookup, hasAni
 }
 
 /** Proteína recomendada después de entrenar: ~0,3 g/kg (ISSN: 0,25–0,40 g/kg o 20–40 g por toma). */
-export function postWorkoutProtein(kg: number): number {
-  return Math.round(Math.min(40, Math.max(20, 0.3 * kg)));
+export function postWorkoutProtein(kg: number, perKg = 0.3): number {
+  return proteinDose(kg, perKg);
 }
 
 /** 1RM estimado (fórmula de Epley). */

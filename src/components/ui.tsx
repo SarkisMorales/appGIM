@@ -217,7 +217,7 @@ export function Field({ label, hint, children, className }: { label: string; hin
 export const inputCls =
   'h-12 w-full rounded-2xl border border-line bg-surface px-4 text-[15px] text-ink placeholder:text-ink-3 outline-none transition focus:border-bal focus:ring-2 focus:ring-bal/20';
 
-export function NumberInput({ value, onChange, suffix, step = 1, min, max, className, placeholder }: { value: number | ''; onChange: (v: number | '') => void; suffix?: string; step?: number; min?: number; max?: number; className?: string; placeholder?: string }) {
+export function NumberInput({ value, onChange, suffix, step = 1, min, max, className, placeholder, compact }: { value: number | ''; onChange: (v: number | '') => void; suffix?: string; step?: number; min?: number; max?: number; className?: string; placeholder?: string; compact?: boolean }) {
   return (
     <div className={cx('relative', className)}>
       <input
@@ -229,7 +229,7 @@ export function NumberInput({ value, onChange, suffix, step = 1, min, max, class
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-        className={cx(inputCls, 'num', suffix && 'pr-14')}
+        className={cx(inputCls, 'num', suffix && 'pr-14', compact && 'px-2 text-center')}
       />
       {suffix && <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-ink-3">{suffix}</span>}
     </div>

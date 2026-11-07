@@ -189,24 +189,25 @@ export default function RoutineBuilder({ id }: { id?: string }) {
                     <Trash2 size={16} />
                   </button>
                 </div>
-                <div className="mt-2 grid grid-cols-3 gap-2">
+                <div className="mt-2 grid grid-cols-[64px_1fr_96px] gap-2">
                   <Field label="Series">
-                    <NumberInput value={b.sets} onChange={(v) => updateBlock(bi, { sets: Math.max(1, Math.min(10, Number(v) || 1)) })} />
+                    <NumberInput compact value={b.sets} onChange={(v) => updateBlock(bi, { sets: Math.max(1, Math.min(10, Number(v) || 1)) })} />
                   </Field>
                   {timed ? (
                     <Field label="Segundos">
-                      <NumberInput value={b.sec ?? 30} onChange={(v) => updateBlock(bi, { sec: Math.max(5, Number(v) || 30), reps: undefined })} />
+                      <NumberInput compact value={b.sec ?? 30} onChange={(v) => updateBlock(bi, { sec: Math.max(5, Number(v) || 30), reps: undefined })} />
                     </Field>
                   ) : (
                     <Field label="Reps (mín–máx)">
-                      <div className="flex gap-1">
-                        <NumberInput value={lo} onChange={(v) => updateBlock(bi, { reps: [Math.max(1, Number(v) || 1), Math.max(hi, Number(v) || 1)] })} />
-                        <NumberInput value={hi} onChange={(v) => updateBlock(bi, { reps: [lo, Math.max(lo, Number(v) || lo)] })} />
+                      <div className="flex items-center gap-1">
+                        <NumberInput compact className="flex-1" value={lo} onChange={(v) => updateBlock(bi, { reps: [Math.max(1, Number(v) || 1), Math.max(hi, Number(v) || 1)] })} />
+                        <span className="text-ink-3">–</span>
+                        <NumberInput compact className="flex-1" value={hi} onChange={(v) => updateBlock(bi, { reps: [lo, Math.max(lo, Number(v) || lo)] })} />
                       </div>
                     </Field>
                   )}
                   <Field label="Descanso">
-                    <select className={inputCls} value={b.rest} onChange={(e) => updateBlock(bi, { rest: Number(e.target.value) })}>
+                    <select className={cx(inputCls, 'px-2')} value={b.rest} onChange={(e) => updateBlock(bi, { rest: Number(e.target.value) })}>
                       {[15, 30, 45, 60, 75, 90, 120, 150, 180].map((r) => (
                         <option key={r} value={r}>
                           {r < 60 ? `${r} s` : `${r / 60} min`.replace('.5', ',5')}
