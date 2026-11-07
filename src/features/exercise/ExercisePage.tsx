@@ -395,8 +395,8 @@ export default function ExercisePage({ tab }: { tab?: string }) {
   return (
     <div className="anim-fade">
       <PageHeader title="Ejercicio" subtitle="Rutinas guiadas, actividades e historial" />
+      <div className="sticky top-[calc(env(safe-area-inset-top,0px)+72px)] z-20 -mx-4 mb-4 bg-bg/90 px-4 pb-2 backdrop-blur-xl">
       <Segmented
-        className="sticky top-[72px] z-20 mb-4"
         value={current}
         onChange={(v) => navigate(v === 'hoy' ? 'ejercicio' : `ejercicio/${v}`, { replace: true })}
         options={[
@@ -406,6 +406,7 @@ export default function ExercisePage({ tab }: { tab?: string }) {
           { value: 'historial', label: 'Historial' },
         ]}
       />
+      </div>
       {current === 'hoy' && <TodayTab />}
       {current === 'rutinas' && <RoutinesTab />}
       {current === 'biblioteca' && <LibraryTab />}

@@ -31,19 +31,19 @@ export function BalanceCard({ day }: { day: DayData }) {
       <div className="relative">
         <div className="flex items-center gap-4">
           <Rings
-            size={164}
-            stroke={13}
-            gap={4}
+            size={172}
+            stroke={11}
+            gap={3}
             rings={[
               { value: day.consumed.kcal, max: t.kcal, color: over ? 'var(--danger)' : 'var(--d-kcal)' },
               { value: day.consumed.protein, max: t.protein, color: 'var(--pro)' },
               { value: day.exerciseMin, max: exTarget, color: 'var(--d-ex)' },
             ]}
           >
-            <div className="num text-[28px] font-extrabold leading-none tracking-tight" style={over ? { color: 'var(--danger)' } : undefined}>
+            <div className="num text-[25px] font-extrabold leading-none tracking-tight" style={over ? { color: 'var(--danger)' } : undefined}>
               {fmt(Math.abs(remaining))}
             </div>
-            <div className="mt-1 text-[11px] font-semibold text-ink-3">{over ? 'kcal de más' : 'kcal restantes'}</div>
+            <div className="mt-1 text-[10px] font-semibold text-ink-3">{over ? 'kcal de más' : 'kcal restantes'}</div>
           </Rings>
           <div className="min-w-0 flex-1 space-y-2.5">
             {[

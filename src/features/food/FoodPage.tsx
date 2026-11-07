@@ -142,7 +142,7 @@ export default function FoodPage() {
 
   return (
     <div className="anim-fade">
-      <PageHeader title="Comida" subtitle="Lo que comés, conectado con lo que entrenás" right={<DateNav />} />
+      <PageHeader title="Comida" subtitle="Conectada con tu entreno" right={<DateNav />} />
 
       <Card>
         <div className="flex items-end justify-between">

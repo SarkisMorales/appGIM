@@ -8,6 +8,8 @@ App web gratuita (PWA) para registrar **lo que comés** y **lo que entrenás**, 
 
 > Abrila en el celular, tocá *“Agregar a pantalla de inicio”* y se usa como una app más.
 
+![Capturas de appGIM: balance del día, comida, rutinas por nivel y entrenamiento guiado](docs/capturas.png)
+
 ## Qué incluye
 
 ### 🍽️ Módulo Comida
