@@ -4,18 +4,21 @@ import { Button, Field, NumberInput, Segmented, inputCls } from '../../component
 import { uid, fmt } from '../../lib/format.ts';
 
 /** Crear un alimento propio (receta casera o producto con etiqueta). */
-export default function CustomFoodForm({ onSaved, barcode, initialName }: { onSaved: (f: Food) => void; barcode?: string; initialName?: string }) {
-  const [name, setName] = useState(initialName ?? '');
-  const [brand, setBrand] = useState('');
-  const [unit, setUnit] = useState<'g' | 'ml'>('g');
-  const [basis, setBasis] = useState<'100' | 'porcion'>('porcion');
-  const [portionLabel, setPortionLabel] = useState('1 porción');
-  const [portionG, setPortionG] = useState<number | ''>(100);
-  const [kcal, setKcal] = useState<number | ''>('');
-  const [p, setP] = useState<number | ''>('');
-  const [c, setC] = useState<number | ''>('');
-  const [f, setF] = useState<number | ''>('');
-  const [fib, setFib] = useState<number | ''>('');
+export default function CustomFoodForm({ onSaved, barcode, initialName, initial }: { onSaved: (f: Food) => void; barcode?: string; initialName?: string; initial?: Food }) {
+  // Al editar, mostramos los valores como los cargaste: por porción si tiene una, si no cada 100.
+  const por = initial?.portions[0];
+  const back = (v?: number) => (v == null ? '' : Math.round(((v * (por?.grams ?? 100)) / 100) * 10) / 10);
+  const [name, setName] = useState(initial?.name ?? initialName ?? '');
+  const [brand, setBrand] = useState(initial?.brand ?? '');
+  const [unit, setUnit] = useState<'g' | 'ml'>(initial?.unit ?? 'g');
+  const [basis, setBasis] = useState<'100' | 'porcion'>(initial && !por ? '100' : 'porcion');
+  const [portionLabel, setPortionLabel] = useState(por?.label ?? '1 porción');
+  const [portionG, setPortionG] = useState<number | ''>(por?.grams ?? 100);
+  const [kcal, setKcal] = useState<number | ''>(initial ? Math.round(Number(back(initial.kcal))) : '');
+  const [p, setP] = useState<number | ''>(initial ? back(initial.protein) : '');
+  const [c, setC] = useState<number | ''>(initial ? back(initial.carbs) : '');
+  const [f, setF] = useState<number | ''>(initial ? back(initial.fat) : '');
+  const [fib, setFib] = useState<number | ''>(initial ? back(initial.fiber ?? 0) : '');
 
   const base = basis === '100' ? 100 : Number(portionG) || 0;
   const k = base ? 100 / base : 0;
@@ -23,7 +26,8 @@ export default function CustomFoodForm({ onSaved, barcode, initialName }: { onSa
 
   const save = () => {
     const food: Food = {
-      id: barcode ? `custom-bc-${barcode}` : `custom-${uid()}`,
+      ...(initial ?? {}),
+      id: initial?.id ?? (barcode ? `custom-bc-${barcode}` : `custom-${uid()}`),
       name: name.trim(),
       brand: brand.trim() || undefined,
       category: 'personal',
@@ -33,9 +37,9 @@ export default function CustomFoodForm({ onSaved, barcode, initialName }: { onSa
       fat: Math.round((Number(f) || 0) * k * 10) / 10,
       fiber: Math.round((Number(fib) || 0) * k * 10) / 10,
       unit,
-      portions: basis === 'porcion' ? [{ label: portionLabel.trim() || '1 porción', grams: base }] : [],
-      source: 'custom',
-      barcode,
+      portions: basis === 'porcion' ? [{ label: portionLabel.trim() || '1 porción', grams: base }, ...(initial?.portions.slice(1) ?? [])] : [],
+      source: initial?.source ?? 'custom',
+      barcode: initial?.barcode ?? barcode,
     };
     onSaved(food);
   };
@@ -90,7 +94,7 @@ export default function CustomFoodForm({ onSaved, barcode, initialName }: { onSa
         </p>
       ) : null}
       <Button variant="food" size="lg" block disabled={!valid} onClick={save}>
-        Guardar alimento
+        {initial ? 'Guardar cambios' : 'Guardar alimento'}
       </Button>
     </div>
   );

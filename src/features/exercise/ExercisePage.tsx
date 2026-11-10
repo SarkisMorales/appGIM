@@ -8,6 +8,7 @@ import { EXERCISES, MUSCLE_LABEL, getExercise } from '../../data/exercises.ts';
 import { hasAnim } from '../../data/animations.ts';
 import { oneRepMax, summarizeRoutine } from '../../lib/training.ts';
 import { searchBy } from '../../lib/search.ts';
+import { ResumeBanner } from './ResumeBanner.tsx';
 import { Badge, Button, Card, Chip, Empty, PageHeader, SectionTitle, Segmented, cx, inputCls } from '../../components/ui.tsx';
 import { ExerciseFigure } from '../../components/figure/ExerciseFigure.tsx';
 import { PlanCard } from './PlanCard.tsx';
@@ -395,6 +396,7 @@ export default function ExercisePage({ tab }: { tab?: string }) {
   return (
     <div className="anim-fade">
       <PageHeader title="Ejercicio" subtitle="Rutinas guiadas, actividades e historial" />
+      <ResumeBanner className="mb-3" />
       <div className="sticky top-[calc(env(safe-area-inset-top,0px)+72px)] z-20 -mx-4 mb-4 bg-bg/90 px-4 pb-2 backdrop-blur-xl">
       <Segmented
         value={current}

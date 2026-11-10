@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, Download, Dumbbell, HeartPulse, Moon, Palette, Shield, Smartphone, Sun, Target, Trash2, Upload, User } from 'lucide-react';
 import type { ActivityLevel, Goal, Level, Overrides, Place, Profile, Sex } from '../../types.ts';
-import { exportState, useStore, useUI } from '../../store/useStore.ts';
+import { useStore, useUI, type AppState } from '../../store/useStore.ts';
+import { downloadBackup } from '../../lib/backup.ts';
+import { clearPhotos } from '../../lib/photos.ts';
+import { clearActive } from '../../lib/activeWorkout.ts';
 import { findRoutine } from '../../store/derived.ts';
 import { ACTIVITY, GOALS, baseTargets } from '../../lib/nutrition.ts';
 import { LEVELS } from '../../data/routines.ts';
@@ -162,24 +165,29 @@ export default function ProfilePage() {
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const standalone = window.matchMedia?.('(display-mode: standalone)').matches;
 
+  const lastBackupAt = useStore((s) => s.lastBackupAt);
+  const nEntries = useStore((s) => s.entries.length);
+  const nWorkouts = useStore((s) => s.workouts.length);
+  const nWeights = useStore((s) => s.weights.length);
+  const counts = { e: nEntries, w: nWorkouts, p: nWeights };
+  const [pending, setPending] = useState<(Partial<AppState> & { exportedAt?: string }) | null>(null);
+
   const doExport = () => {
-    const blob = new Blob([exportState()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `appgim-backup-${todayISO()}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    downloadBackup();
     toast('Backup descargado ✓');
   };
 
+  // Importar reemplaza todo: primero se lee el archivo y se pide confirmación mostrando qué trae.
   const doImport = async (f: File) => {
     try {
       const data = JSON.parse(await f.text());
-      if (data.app !== 'appGIM') throw new Error('formato');
-      importData(data);
-      toast('Datos restaurados ✓');
+      const arr = (v: unknown) => v == null || Array.isArray(v);
+      if (data.app !== 'appGIM' || !arr(data.entries) || !arr(data.workouts) || !arr(data.weights)) throw new Error('formato');
+      setPending(data);
     } catch {
       toast('El archivo no es un backup válido de appGIM', { tone: 'warn' });
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
@@ -298,6 +306,7 @@ export default function ProfilePage() {
       </SectionTitle>
       <Card>
         <p className="text-[13px] text-ink-2">Todo se guarda solo en este dispositivo: no hay cuentas ni servidores. Hacé un backup de vez en cuando (o para pasar tus datos a otro teléfono).</p>
+        <p className="mt-1 text-xs font-semibold text-ink-3">{lastBackupAt ? `Último backup: ${new Date(lastBackupAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}` : 'Todavía no hiciste ningún backup.'}</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Button variant="soft" onClick={doExport}>
             <Download size={16} /> Exportar
@@ -367,9 +376,40 @@ export default function ProfilePage() {
 
       {edit && <EditProfileSheet onClose={() => setEdit(false)} />}
       {targets && <TargetsSheet onClose={() => setTargets(false)} />}
+      {pending && (
+        <Sheet open onClose={() => setPending(null)} title="¿Restaurar este backup?">
+          <div className="rounded-2xl bg-surface-2 p-3 text-[13px]">
+            <div className="font-bold">El archivo trae</div>
+            <div className="num mt-1 text-ink-2">
+              {pending.entries?.length ?? 0} comidas · {pending.workouts?.length ?? 0} entrenamientos · {pending.weights?.length ?? 0} pesajes
+              {pending.profile?.name ? ` · perfil de ${pending.profile.name}` : ''}
+            </div>
+            {pending.exportedAt && <div className="mt-0.5 text-xs text-ink-3">Guardado el {new Date(pending.exportedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
+          </div>
+          <p className="mt-3 text-sm text-ink-2">
+            Va a <b>reemplazar todo</b> lo que hay ahora en este dispositivo
+            <span className="num"> ({counts.e} comidas, {counts.w} entrenamientos y {counts.p} pesajes)</span>. No se puede deshacer.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Button variant="soft" onClick={() => setPending(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                importData(pending);
+                setPending(null);
+                toast('Datos restaurados ✓');
+              }}
+            >
+              Reemplazar todo
+            </Button>
+          </div>
+        </Sheet>
+      )}
       {confirmReset && (
         <Sheet open onClose={() => setConfirmReset(false)} title="¿Borrar todos tus datos?">
-          <p className="text-sm text-ink-2">Se eliminan comidas, entrenamientos, pesos y tu perfil de este dispositivo. No se puede deshacer (salvo que tengas un backup).</p>
+          <p className="text-sm text-ink-2">Se eliminan comidas, entrenamientos, pesos, medidas, fotos y tu perfil de este dispositivo. No se puede deshacer (salvo que tengas un backup).</p>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <Button variant="soft" onClick={() => setConfirmReset(false)}>
               Cancelar
@@ -378,6 +418,8 @@ export default function ProfilePage() {
               variant="danger"
               onClick={() => {
                 resetAll();
+                clearActive();
+                void clearPhotos().catch(() => {});
                 setConfirmReset(false);
                 navigate('', { replace: true });
               }}

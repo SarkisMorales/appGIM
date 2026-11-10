@@ -126,3 +126,73 @@ test('1RM, proteína post-entreno y TDEE adaptativo', () => {
   ]);
   assert.ok(r && Math.abs(r.tdee - 2285) < 20, JSON.stringify(r));
 });
+
+// ---------------- Segunda tanda: correcciones y funciones nuevas ----------------
+import { parseQuantity, offToFood } from '../src/lib/off.ts';
+import { nextTargetLog, targetsAt, dayTargets as dayTargets2, baseTargets as baseTargets2 } from '../src/lib/nutrition.ts';
+import { generatePlan, dayMacros, shoppingList, swapMeal } from '../src/lib/mealPlan.ts';
+import { MEAL_TEMPLATES } from '../src/data/mealTemplates.ts';
+import { FOODS as FOODS2 } from '../src/data/foods.ts';
+import type { Profile as Profile2 } from '../src/types.ts';
+
+const P2: Profile2 = { name: 'Test', sex: 'm', age: 30, heightCm: 175, weightKg: 80, activity: 'ligero', goal: 'bajar', paceKg: 0.5, level: 'principiante', place: 'casa', trainingDays: 3, exerciseBack: 1, createdAt: '2026-01-01' };
+
+test('envases de productos: kg, litros, cl y packs se pasan bien a gramos/ml', () => {
+  assert.equal(parseQuantity('1 kg'), 1000);
+  assert.equal(parseQuantity('1,5 L'), 1500);
+  assert.equal(parseQuantity('6 x 125 g'), 750);
+  assert.equal(parseQuantity('33 cl'), 330);
+  assert.equal(parseQuantity('500 g'), 500);
+  assert.equal(parseQuantity('12 unidades'), undefined);
+  const f = offToFood({ code: '1', product_name: 'Yerba', quantity: '1 kg', nutriments: { 'energy-kcal_100g': 100 } })!;
+  assert.deepEqual(f.portions, [{ label: 'Envase completo (1 kg)', grams: 1000 }]);
+  assert.equal(offToFood({ code: '2', product_name: 'Jugo', quantity: '1,5 L', nutriments: { 'energy-kcal_100g': 40 } })!.unit, 'ml');
+});
+
+test('historial de objetivos: cambiar el perfil no modifica los días pasados', () => {
+  const heavier = { ...P2, weightKg: 90 };
+  let log = nextTargetLog(null, P2, [], '2026-01-01');
+  assert.equal(log.length, 1);
+  // Mismo objetivo: no se agrega nada.
+  assert.equal(nextTargetLog(P2, { ...P2, name: 'Otro' }, log, '2026-02-01').length, 1);
+  log = nextTargetLog(P2, heavier, log, '2026-03-01');
+  assert.equal(log.length, 2);
+  const old = targetsAt(log, '2026-02-15', '2026-03-10')!;
+  assert.equal(old.base.kcal, baseTargets2(P2).kcal);
+  assert.equal(targetsAt(log, '2026-03-05', '2026-03-10')!.base.kcal, baseTargets2(heavier).kcal);
+  // Hoy siempre usa el perfil actual.
+  assert.equal(targetsAt(log, '2026-03-10', '2026-03-10'), undefined);
+  assert.equal(dayTargets2(heavier, 300, 30, old).kcal, baseTargets2(P2).kcal + 300);
+  // Usuario que ya tenía datos sin historial: se guarda primero el objetivo viejo.
+  const migrated = nextTargetLog(P2, heavier, [], '2026-03-01');
+  assert.equal(migrated.length, 2);
+  assert.equal(migrated[0].base.kcal, baseTargets2(P2).kcal);
+});
+
+test('plan semanal: 7 días cerca del objetivo, con lista de compras', () => {
+  const foods = new Map(FOODS2.map((f) => [f.id, f]));
+  for (const t of MEAL_TEMPLATES) for (const it of t.items) assert.ok(foods.has(it.id), `${t.id}: falta el alimento ${it.id}`);
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+  for (const [kcal, protein, veg] of [[1600, 120, false], [2200, 140, false], [3000, 150, false], [2000, 110, true]] as const) {
+    const plan = generatePlan({ kcal, protein }, foods, { veg, today: '2026-11-10' }, rnd);
+    assert.equal(plan.days.length, 7);
+    let k = 0;
+    let p = 0;
+    for (const d of plan.days) {
+      const m = dayMacros(d, foods);
+      assert.ok(m.kcal > kcal * 0.85 && m.kcal < kcal * 1.2, `${kcal} kcal: día con ${m.kcal}`);
+      assert.ok(m.protein > protein * 0.7, `${protein} g: día con ${m.protein} g`);
+      if (veg) for (const ml of d) assert.ok(MEAL_TEMPLATES.find((t) => t.id === ml.tpl)?.veg, `${ml.name} no es vegetariano`);
+      k += m.kcal;
+      p += m.protein;
+    }
+    assert.ok(Math.abs(k / 7 - kcal) < kcal * 0.07, `promedio ${k / 7} vs ${kcal}`);
+    assert.ok(p / 7 > protein * 0.88, `proteína promedio ${p / 7} vs ${protein}`);
+    assert.ok(shoppingList(plan, foods).length >= 5);
+    const before = plan.days[0].find((m) => m.meal === 'almuerzo')!.tpl;
+    const swapped = swapMeal(plan, 0, 'almuerzo', { kcal, protein }, foods, rnd);
+    assert.notEqual(swapped.days[0].find((m) => m.meal === 'almuerzo')!.tpl, before);
+    assert.deepEqual(swapped.days[1], plan.days[1]);
+  }
+});

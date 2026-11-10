@@ -6,6 +6,8 @@ import type {
   Food,
   FoodEntry,
   MealId,
+  MealPlan,
+  Measure,
   Profile,
   Routine,
   SavedMeal,
@@ -15,6 +17,7 @@ import type {
 } from '../types.ts';
 import { uid } from '../lib/format.ts';
 import { todayISO } from '../lib/dates.ts';
+import { nextTargetLog, type TargetLog } from '../lib/nutrition.ts';
 
 export interface RecentFood {
   food: Food;
@@ -37,6 +40,14 @@ export interface AppState {
   recents: RecentFood[];
   customRoutines: Routine[];
   plan: ActivePlan | null;
+  /** Historial de objetivos: cada cambio de perfil rige desde su fecha. */
+  targetLog: TargetLog[];
+  /** Logros ganados (id → fecha). Una vez ganados, no se pierden. */
+  badges: Record<string, string>;
+  measures: Measure[];
+  mealPlan: MealPlan | null;
+  lastBackupAt: number;
+  backupSnoozeUntil: number;
 
   setProfile: (p: Profile) => void;
   updateProfile: (patch: Partial<Profile>) => void;
@@ -47,6 +58,8 @@ export interface AppState {
   removeEntry: (id: string) => void;
   restoreEntry: (e: FoodEntry) => void;
   copyMeal: (fromDate: string, toDate: string, meal: MealId) => number;
+  copyDay: (fromDate: string, toDate: string) => string[];
+  removeEntries: (ids: string[]) => void;
 
   addWater: (date: string, ml: number) => void;
 
@@ -70,6 +83,13 @@ export interface AppState {
 
   saveRoutine: (r: Routine) => void;
   removeRoutine: (id: string) => void;
+
+  earnBadges: (ids: string[]) => void;
+  setMeasure: (m: Measure) => void;
+  removeMeasure: (date: string) => void;
+  setMealPlan: (p: MealPlan | null) => void;
+  markBackup: () => void;
+  snoozeBackup: (days: number) => void;
 
   importData: (data: Partial<AppState>) => void;
   resetAll: () => void;
@@ -98,6 +118,12 @@ const initial = {
   recents: [] as RecentFood[],
   customRoutines: [] as Routine[],
   plan: null as ActivePlan | null,
+  targetLog: [] as TargetLog[],
+  badges: {} as Record<string, string>,
+  measures: [] as Measure[],
+  mealPlan: null as MealPlan | null,
+  lastBackupAt: 0,
+  backupSnoozeUntil: 0,
 };
 
 export const useStore = create<AppState>()(
@@ -106,10 +132,15 @@ export const useStore = create<AppState>()(
       ...initial,
 
       setProfile: (p) => {
-        set({ profile: p });
+        set((s) => ({ profile: p, targetLog: nextTargetLog(s.profile, p, s.targetLog, todayISO()) }));
         if (!get().weights.length) set({ weights: [{ date: todayISO(), kg: p.weightKg }] });
       },
-      updateProfile: (patch) => set((s) => (s.profile ? { profile: { ...s.profile, ...patch } } : {})),
+      updateProfile: (patch) =>
+        set((s) => {
+          if (!s.profile) return {};
+          const profile = { ...s.profile, ...patch };
+          return { profile, targetLog: nextTargetLog(s.profile, profile, s.targetLog, todayISO()) };
+        }),
       updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
 
       addEntry: (date, meal, draft) => {
@@ -127,6 +158,14 @@ export const useStore = create<AppState>()(
         set((s) => ({ entries: [...s.entries, ...copies] }));
         return copies.length;
       },
+      copyDay: (fromDate, toDate) => {
+        const src = get().entries.filter((e) => e.date === fromDate).sort((a, b) => a.createdAt - b.createdAt);
+        const now = Date.now();
+        const copies = src.map((e, i) => ({ ...e, id: uid(), date: toDate, createdAt: now + i }));
+        set((s) => ({ entries: [...s.entries, ...copies] }));
+        return copies.map((c) => c.id);
+      },
+      removeEntries: (ids) => set((s) => ({ entries: s.entries.filter((e) => !ids.includes(e.id)) })),
 
       addWater: (date, ml) => set((s) => ({ water: { ...s.water, [date]: Math.max(0, (s.water[date] || 0) + ml) } })),
 
@@ -142,17 +181,23 @@ export const useStore = create<AppState>()(
         set((s) => {
           const weights = [...s.weights.filter((w) => w.date !== date), { date, kg }].sort((a, b) => (a.date < b.date ? -1 : 1));
           const latest = weights[weights.length - 1];
-          return { weights, profile: s.profile && latest ? { ...s.profile, weightKg: latest.kg } : s.profile };
+          const profile = s.profile && latest ? { ...s.profile, weightKg: latest.kg } : s.profile;
+          return { weights, profile, targetLog: nextTargetLog(s.profile, profile, s.targetLog, todayISO()) };
         });
       },
       removeWeight: (date) =>
         set((s) => {
           const weights = s.weights.filter((w) => w.date !== date);
           const latest = weights[weights.length - 1];
-          return { weights, profile: s.profile && latest ? { ...s.profile, weightKg: latest.kg } : s.profile };
+          const profile = s.profile && latest ? { ...s.profile, weightKg: latest.kg } : s.profile;
+          return { weights, profile, targetLog: nextTargetLog(s.profile, profile, s.targetLog, todayISO()) };
         }),
 
-      saveCustomFood: (f) => set((s) => ({ customFoods: [...s.customFoods.filter((x) => x.id !== f.id), f] })),
+      saveCustomFood: (f) =>
+        set((s) => ({
+          customFoods: [...s.customFoods.filter((x) => x.id !== f.id), f],
+          recents: s.recents.map((r) => (r.food.id === f.id ? { ...r, food: f } : r)),
+        })),
       removeCustomFood: (id) => set((s) => ({ customFoods: s.customFoods.filter((x) => x.id !== id), favorites: s.favorites.filter((x) => x !== id) })),
       toggleFavorite: (foodId) =>
         set((s) => ({ favorites: s.favorites.includes(foodId) ? s.favorites.filter((x) => x !== foodId) : [foodId, ...s.favorites] })),
@@ -168,11 +213,26 @@ export const useStore = create<AppState>()(
       saveRoutine: (r) => set((s) => ({ customRoutines: [...s.customRoutines.filter((x) => x.id !== r.id), r] })),
       removeRoutine: (id) => set((s) => ({ customRoutines: s.customRoutines.filter((x) => x.id !== id), plan: s.plan?.routineId === id ? null : s.plan })),
 
+      earnBadges: (ids) =>
+        set((s) => {
+          const fresh = ids.filter((id) => !s.badges[id]);
+          if (!fresh.length) return {};
+          const badges = { ...s.badges };
+          fresh.forEach((id) => (badges[id] = todayISO()));
+          return { badges };
+        }),
+      setMeasure: (m) => set((s) => ({ measures: [...s.measures.filter((x) => x.date !== m.date), m].sort((a, b) => (a.date < b.date ? -1 : 1)) })),
+      removeMeasure: (date) => set((s) => ({ measures: s.measures.filter((x) => x.date !== date) })),
+      setMealPlan: (p) => set({ mealPlan: p }),
+      markBackup: () => set({ lastBackupAt: Date.now() }),
+      snoozeBackup: (days) => set({ backupSnoozeUntil: Date.now() + days * 86400000 }),
+
       importData: (data) => {
         const keys = Object.keys(initial) as (keyof typeof initial)[];
         const patch: Partial<AppState> = {};
-        for (const k of keys) if (k in data) (patch as Record<string, unknown>)[k] = (data as Record<string, unknown>)[k];
-        set({ ...patch, settings: { ...DEFAULT_SETTINGS, ...(data.settings || {}) } });
+        for (const k of keys) if (k in data && (data as Record<string, unknown>)[k] != null) (patch as Record<string, unknown>)[k] = (data as Record<string, unknown>)[k];
+        // Lo que el backup no trae vuelve a su valor inicial: importar reemplaza todo.
+        set({ ...initial, ...patch, settings: { ...DEFAULT_SETTINGS, ...(data.settings || {}) }, lastBackupAt: Date.now() });
       },
       resetAll: () => set({ ...initial, settings: get().settings }),
     }),

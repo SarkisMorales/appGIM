@@ -4,7 +4,7 @@ import type { ActivePlan, Food, FoodEntry, MealId, Profile, Routine, Session, Wo
 import { useStore } from './useStore.ts';
 import { FOODS } from '../data/foods.ts';
 import { ROUTINES } from '../data/routines.ts';
-import { dayTargets, sumMacros, type DayTargets } from '../lib/nutrition.ts';
+import { dayTargets, sumMacros, targetsAt, type DayTargets, type TargetLog } from '../lib/nutrition.ts';
 import { addDays, todayISO, weekday } from '../lib/dates.ts';
 import type { Macros } from '../types.ts';
 
@@ -67,6 +67,7 @@ export function computeDay(
   entries: FoodEntry[],
   workouts: Workout[],
   water: Record<string, number>,
+  targetLog?: TargetLog[],
 ): DayData {
   const es = entries.filter((e) => e.date === date).sort((a, b) => a.createdAt - b.createdAt);
   const ws = workouts.filter((w) => w.date === date).sort((a, b) => a.startedAt - b.startedAt);
@@ -74,7 +75,7 @@ export function computeDay(
   const exerciseKcal = ws.reduce((a, w) => a + w.kcal, 0);
   const exerciseNet = ws.reduce((a, w) => a + w.netKcal, 0);
   const exerciseMin = ws.reduce((a, w) => a + w.durationMin, 0);
-  const targets = dayTargets(profile, exerciseNet, exerciseMin);
+  const targets = dayTargets(profile, exerciseNet, exerciseMin, targetsAt(targetLog, date, todayISO()));
   const byMeal = { desayuno: [], almuerzo: [], merienda: [], cena: [], snacks: [] } as Record<MealId, FoodEntry[]>;
   es.forEach((e) => byMeal[e.meal]?.push(e));
   return {
@@ -99,10 +100,10 @@ export function computeDay(
 }
 
 export function useDay(date: string): DayData | null {
-  const { profile, entries, workouts, water } = useStore(
-    useShallow((s) => ({ profile: s.profile, entries: s.entries, workouts: s.workouts, water: s.water })),
+  const { profile, entries, workouts, water, targetLog } = useStore(
+    useShallow((s) => ({ profile: s.profile, entries: s.entries, workouts: s.workouts, water: s.water, targetLog: s.targetLog })),
   );
-  return useMemo(() => (profile ? computeDay(profile, date, entries, workouts, water) : null), [profile, date, entries, workouts, water]);
+  return useMemo(() => (profile ? computeDay(profile, date, entries, workouts, water, targetLog) : null), [profile, date, entries, workouts, water, targetLog]);
 }
 
 /** Días seguidos (hasta hoy o ayer) con algo registrado: comida o entrenamiento. */

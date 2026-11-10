@@ -8,6 +8,7 @@ import { kcalFromMet, oneRepMax } from '../../lib/training.ts';
 import { navigate } from '../../lib/router.ts';
 import { fmt, fmt1 } from '../../lib/format.ts';
 import { shortDate } from '../../lib/dates.ts';
+import { LineChart, type LinePoint } from '../../components/charts.tsx';
 
 export function ExerciseInfo({ id, compact }: { id: string; compact?: boolean }) {
   const ex = getExercise(id);
@@ -66,6 +67,15 @@ export default function ExerciseDetail({ id }: { id?: string }) {
     .filter((h) => h.sets.length)
     .sort((a, b) => (a.date < b.date ? 1 : -1));
   const best = history.flatMap((h) => h.sets).reduce((a, s) => Math.max(a, oneRepMax(s.weight ?? 0, s.reps ?? 0)), 0);
+  // Evolución: 1RM estimado si usás peso; si no, tu mejor serie de repeticiones o segundos de cada día.
+  const kind: 'kg' | 'reps' | 's' = best > 0 ? 'kg' : history.some((h) => h.sets.some((s) => s.reps)) ? 'reps' : 's';
+  const byDate = new Map<string, number>();
+  history.forEach((h) => {
+    const v = h.sets.reduce((a, s) => Math.max(a, kind === 'kg' ? oneRepMax(s.weight ?? 0, s.reps ?? 0) : kind === 'reps' ? (s.reps ?? 0) : (s.sec ?? 0)), 0);
+    if (v > 0) byDate.set(h.date, Math.max(byDate.get(h.date) ?? 0, v));
+  });
+  const series: LinePoint[] = [...byDate.entries()].map(([date, v]) => ({ date, v })).sort((a, b) => (a.date < b.date ? -1 : 1));
+  const delta = series.length >= 2 ? series[series.length - 1].v - series[0].v : 0;
   const met = ex.met ?? (ex.category === 'movilidad' ? 2.3 : ex.category === 'core' ? 3.8 : 5.0);
   const yt = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${ex.name} técnica correcta`)}`;
 
@@ -148,7 +158,20 @@ export default function ExerciseDetail({ id }: { id?: string }) {
 
       {history.length > 0 && (
         <>
-          <SectionTitle>Tu historial</SectionTitle>
+          <SectionTitle>Tu progreso</SectionTitle>
+          {series.length >= 2 && (
+            <Card className="mb-2">
+              <div className="mb-2 flex items-baseline justify-between">
+                <span className="text-[13px] font-semibold text-ink-2">{kind === 'kg' ? 'Fuerza (1RM estimado)' : kind === 'reps' ? 'Mejor serie (repeticiones)' : 'Mejor serie (segundos)'}</span>
+                <span className={delta > 0 ? 'num text-sm font-extrabold text-ok' : 'num text-sm font-bold text-ink-3'}>
+                  {delta > 0 ? '+' : ''}
+                  {fmt1(delta)} {kind}
+                </span>
+              </div>
+              <LineChart points={series} unit={kind} color="var(--d-ex)" label={`Evolución en ${ex.name}`} />
+            </Card>
+          )}
+          {series.length === 1 && <p className="mb-2 px-1 text-xs text-ink-3">Cuando lo hagas otro día vas a ver acá el gráfico de tu evolución.</p>}
           <Card className="divide-y divide-line py-1">
             {best > 0 && <div className="py-2 text-[13px]">Mejor 1RM estimado: <b>{fmt1(best)} kg</b></div>}
             {history.slice(0, 6).map((h, i) => (

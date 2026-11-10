@@ -149,7 +149,7 @@ export function FoodDetail({
         )}
         {after != null && (
           <div className={cx('mt-2 text-xs font-semibold', after < 0 ? 'text-danger' : 'text-ink-3')}>
-            {after >= 0 ? `Te quedarían ${fmt(after)} kcal hoy` : `Te pasarías ${fmt(-after)} kcal de tu objetivo`}
+            {after >= 0 ? `Te quedarían ${fmt(after)} kcal en el día` : `Te pasarías ${fmt(-after)} kcal de tu objetivo`}
           </div>
         )}
       </div>

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronRight, Info, List, Pause, Play, SkipForward, Volume2, VolumeX, X, Trophy, Beef, Flame, Clock, Dumbbell, Utensils } from 'lucide-react';
-import type { ExerciseLog, SetLog } from '../../types.ts';
+import type { Exercise, ExerciseLog, SetLog } from '../../types.ts';
 import { useStore, useUI } from '../../store/useStore.ts';
 import { findRoutine } from '../../store/derived.ts';
 import { getExercise } from '../../data/exercises.ts';
 import { avgReps, buildSteps, estimateSession, kcalFromMet, netKcalFromMet, repsLabel, type Step } from '../../lib/training.ts';
 import { ExerciseFigure } from '../../components/figure/ExerciseFigure.tsx';
-import { Button, Card, Empty, Sheet, Stepper, cx } from '../../components/ui.tsx';
+import { Button, Card, Empty, Sheet, Stepper, afterSheetClose, cx } from '../../components/ui.tsx';
+import { clearActive, loadActive, saveActive, takeAutoResume } from '../../lib/activeWorkout.ts';
 import { ExerciseInfo } from './ExerciseDetail.tsx';
 import { beep, chime, speak, unlockAudio, vibrate } from '../../lib/feedback.ts';
 import { navigate } from '../../lib/router.ts';
@@ -15,17 +16,33 @@ import { todayISO } from '../../lib/dates.ts';
 
 type Phase = 'intro' | 'ready' | 'work' | 'rest' | 'done';
 
-function stepTarget(s: Step): string {
+/** Texto del objetivo del paso: "12 reps por lado", "30 s por lado", "30 s alternando lados"… */
+function stepTarget(s: Step, ex?: Exercise): string {
   if (s.kind === 'warmup') return `${Math.round(s.sec / 60)} min`;
-  if (s.kind === 'set') return s.sec ? `${s.sec} s` : `${repsLabel(s.reps)} reps`;
-  return s.reps ? `${s.reps} reps` : `${s.sec} s`;
+  const side = !!ex?.perSide;
+  if (s.kind === 'set') return s.sec ? `${s.sec} s${side ? ' por lado' : ''}` : `${repsLabel(s.reps)} reps${side ? ' por lado' : ''}`;
+  if (s.reps) return `${s.reps} reps${side ? ' por lado' : ''}`;
+  if (!side) return `${s.sec} s`;
+  return ex?.mode === 'tiempo' ? `${s.sec} s (mitad por lado)` : `${s.sec} s alternando lados`;
 }
 
-function stepSeconds(s: Step): number | null {
+/** Segundos totales del cronómetro del paso (null = por repeticiones). En series "por lado" cuenta los dos lados. */
+function stepSeconds(s: Step, ex?: Exercise): number | null {
   if (s.kind === 'warmup') return s.sec;
-  if (s.kind === 'set') return s.sec ?? null;
+  if (s.kind === 'set') return s.sec ? s.sec * (ex?.perSide ? 2 : 1) : null;
   return s.reps ? null : (s.sec ?? null);
 }
+
+/** Segundo restante en el que hay que cambiar de lado (null si no aplica). */
+function switchAt(s: Step, ex?: Exercise): number | null {
+  if (s.kind === 'warmup' || !ex?.perSide) return null;
+  if (s.kind === 'set') return s.sec ?? null;
+  if (!s.reps && s.sec && ex.mode === 'tiempo') return Math.floor(s.sec / 2);
+  return null;
+}
+
+const spoken = (t: string) => t.replace('reps', 'repeticiones').replace(/ s\b/, ' segundos');
+const exOf = (s?: Step) => (s && s.kind !== 'warmup' ? getExercise(s.ex) : undefined);
 
 function useWakeLock(active: boolean) {
   useEffect(() => {
@@ -78,6 +95,14 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
   const [durationOverride, setDurationOverride] = useState<number | null>(null);
   const [feeling, setFeeling] = useState(4);
   const lastBeep = useRef<number>(-1);
+  const lastSwitch = useRef<number>(-1);
+  /** Tiempo que no cuenta como entrenado: pausas y ratos fuera de la app. */
+  const [awayMs, setAwayMs] = useState(0);
+  const pauseStart = useRef<number | null>(null);
+  const [saved] = useState(() => {
+    const a = loadActive();
+    return a && a.routineId === routineId && a.sessionId === (sessionId ?? a.sessionId) ? a : null;
+  });
 
   useWakeLock(phase !== 'intro' && phase !== 'done');
 
@@ -105,6 +130,14 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
 
   const left = pausedLeft != null ? pausedLeft : endsAt != null ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : null;
 
+  const closePause = useCallback(() => {
+    if (pauseStart.current != null) {
+      const d = Date.now() - pauseStart.current;
+      pauseStart.current = null;
+      setAwayMs((a) => a + d);
+    }
+  }, []);
+
   // Prepara un paso: valores sugeridos y voz
   const enterStep = useCallback(
     (i: number) => {
@@ -113,8 +146,11 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
       setIdx(i);
       setPhase('work');
       setPausedLeft(null);
+      closePause();
       lastBeep.current = -1;
-      const secs = stepSeconds(s);
+      lastSwitch.current = -1;
+      const secs = stepSeconds(s, exOf(s));
+      setNow(Date.now());
       setEndsAt(secs ? Date.now() + secs * 1000 : null);
       if (s.kind !== 'warmup') {
         const prev = lastSets(s.ex);
@@ -123,12 +159,12 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
         setReps(prev?.[k]?.reps ?? targetReps);
         setWeight(prev?.[k]?.weight ?? prev?.[0]?.weight ?? 0);
         const e = getExercise(s.ex);
-        say(`${e?.name ?? ''}. ${stepTarget(s).replace('reps', 'repeticiones').replace(' s', ' segundos')}${e?.perSide ? ' por lado' : ''}`);
+        say(`${e?.name ?? ''}. ${spoken(stepTarget(s, e))}`);
       } else {
         say('Calentamiento. Movilidad articular y cardio suave.');
       }
     },
-    [steps, lastSets, say],
+    [steps, lastSets, say, closePause],
   );
 
   const finishStep = useCallback(
@@ -136,15 +172,21 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
       const s = steps[idx];
       if (!s) return;
       if (s.kind !== 'warmup') {
-        const secs = stepSeconds(s);
+        const e = getExercise(s.ex);
+        const secs = stepSeconds(s, e);
+        // Si cortaste antes el cronómetro, se anota el tiempo real (por lado en las series "por lado").
+        const sides = s.kind === 'set' && e?.perSide ? 2 : 1;
+        const realSec = secs ? Math.max(0, Math.round((secs - (left ?? 0)) / sides)) : undefined;
         setLogs((l) => ({
           ...l,
-          [idx]: { exId: s.ex, done, reps: secs ? undefined : reps, weight: secs ? undefined : weight || undefined, sec: secs ?? undefined },
+          [idx]: { exId: s.ex, done, reps: secs ? undefined : reps, weight: secs ? undefined : weight || undefined, sec: realSec },
         }));
       }
+      closePause();
       if (idx >= steps.length - 1) {
         setPhase('done');
         setEndsAt(null);
+        setPausedLeft(null);
         if (settings.sound) chime();
         buzz([120, 80, 120]);
         say('¡Entrenamiento completado! Excelente trabajo.');
@@ -154,14 +196,14 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
       if (rest > 0) {
         setPhase('rest');
         setPausedLeft(null);
+        setNow(Date.now());
         setEndsAt(Date.now() + rest * 1000);
         lastBeep.current = -1;
-        const n = steps[idx + 1];
-        const ne = n && n.kind !== 'warmup' ? getExercise(n.ex) : undefined;
+        const ne = exOf(steps[idx + 1]);
         say(`Descanso. ${rest} segundos.${ne ? ` Después: ${ne.name}.` : ''}`);
       } else enterStep(idx + 1);
     },
-    [steps, idx, reps, weight, enterStep, say, buzz, settings.sound],
+    [steps, idx, reps, weight, left, enterStep, say, buzz, settings.sound, closePause],
   );
 
   // Reloj
@@ -178,6 +220,15 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
       lastBeep.current = left;
       ding(660, 120);
     }
+    if (phase === 'work') {
+      const sw = steps[idx] ? switchAt(steps[idx], exOf(steps[idx])) : null;
+      if (sw && left <= sw && left > 0 && lastSwitch.current !== idx) {
+        lastSwitch.current = idx;
+        ding(990, 260);
+        buzz([150, 80, 150]);
+        say('Cambiá de lado');
+      }
+    }
     if (left === 0) {
       if (phase === 'ready') {
         ding(1046, 220);
@@ -192,10 +243,14 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
         finishStep(true);
       }
     }
-  }, [left, phase, pausedLeft, idx, endsAt, ding, buzz, enterStep, finishStep]);
+  }, [left, phase, pausedLeft, idx, endsAt, steps, ding, buzz, say, enterStep, finishStep]);
 
   const start = () => {
     unlockAudio();
+    closed.current = false;
+    clearActive();
+    setLogs({});
+    setAwayMs(0);
     setStartedAt(Date.now());
     setPhase('ready');
     setEndsAt(Date.now() + 3000);
@@ -203,12 +258,65 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
     say(`Arrancamos ${session?.name ?? ''}. Preparate.`);
   };
 
+  /** Retoma el entrenamiento guardado en el paso donde quedó. */
+  const resume = useCallback(() => {
+    if (!saved) return;
+    unlockAudio();
+    setLogs(saved.logs ?? {});
+    setStartedAt(saved.startedAt);
+    setAwayMs(Math.max(0, Date.now() - saved.startedAt - saved.elapsedMs));
+    if (saved.done) {
+      setIdx(Math.min(saved.idx, steps.length - 1));
+      setPhase('done');
+    } else enterStep(Math.min(saved.idx, steps.length - 1));
+  }, [saved, steps.length, enterStep]);
+
+  useEffect(() => {
+    if (saved && takeAutoResume()) resume();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Guarda el avance para poder retomarlo si se cierra la app.
+  const closed = useRef(false);
+  const persist = useRef(() => {});
+  persist.current = () => {
+    if (closed.current || !routine || !session || !startedAt || phase === 'intro' || phase === 'ready') return;
+    const paused = pauseStart.current != null ? Date.now() - pauseStart.current : 0;
+    saveActive({
+      routineId: routine.id,
+      sessionId: session.id,
+      title: session.name,
+      idx: phase === 'rest' ? Math.min(idx + 1, steps.length - 1) : idx,
+      total: steps.length,
+      logs,
+      startedAt,
+      elapsedMs: Math.max(0, Date.now() - startedAt - awayMs - paused),
+      done: phase === 'done',
+    });
+  };
+  useEffect(() => {
+    persist.current();
+  }, [phase, idx, logs]);
+  useEffect(() => {
+    if (phase === 'intro' || phase === 'done') return;
+    const t = setInterval(() => persist.current(), 15000);
+    const onHide = () => document.visibilityState === 'hidden' && persist.current();
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+  }, [phase]);
+
   const togglePause = () => {
     if (pausedLeft != null) {
+      setNow(Date.now());
       setEndsAt(Date.now() + pausedLeft * 1000);
       setPausedLeft(null);
+      closePause();
     } else if (left != null) {
       setPausedLeft(left);
+      pauseStart.current = Date.now();
     }
   };
 
@@ -218,7 +326,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
   };
 
   // ---------------- Resumen ----------------
-  const elapsedMin = startedAt ? (Date.now() - startedAt) / 60000 : 0;
+  const elapsedMin = startedAt ? Math.max(0, Date.now() - startedAt - awayMs) / 60000 : 0;
   const summary = useMemo(() => {
     if (phase !== 'done' || !est) return null;
     const dur = durationOverride ?? Math.max(1, Math.round(Math.min(elapsedMin, est.minutes * 1.6)));
@@ -261,6 +369,8 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
       feeling,
     });
     advancePlan(routine.id);
+    closed.current = true;
+    clearActive();
     navigate('', { replace: true });
     toast(`¡Guardado! +${fmt(summary.bonus)} kcal sumadas a tu objetivo de hoy 💪`);
     if (thenFood) setTimeout(() => openSheet({ kind: 'addFood', date: todayISO() }), 50);
@@ -317,7 +427,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[14px] font-bold">{e?.name}</div>
                     <div className="text-xs text-ink-3">
-                      {n.length} × {stepTarget(n[0])}
+                      {n.length} × {stepTarget(n[0], e)}
                     </div>
                   </div>
                 </div>
@@ -325,14 +435,29 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
             })}
           </Card>
           <div className="mt-4 flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-2">
-            <span className="text-sm font-semibold text-ink-2">Voz guía y sonidos</span>
-            <button onClick={() => updateSettings({ voice: !settings.voice, sound: !settings.voice })} className="flex h-10 w-10 items-center justify-center rounded-full bg-surface" aria-label="Activar o desactivar voz">
+            <span className="text-sm font-semibold text-ink-2">Voz guía</span>
+            <button onClick={() => updateSettings({ voice: !settings.voice })} className="flex h-10 w-10 items-center justify-center rounded-full bg-surface" aria-label="Activar o desactivar voz">
               {settings.voice ? <Volume2 size={18} /> : <VolumeX size={18} />}
             </button>
           </div>
-          <Button variant="fit" size="lg" block className="mt-4" onClick={start}>
-            <Play size={20} fill="currentColor" /> Empezar
-          </Button>
+          {saved ? (
+            <Card className="mt-4 border-fit/40">
+              <div className="text-xs font-bold uppercase tracking-wide text-fit">Entrenamiento sin terminar</div>
+              <p className="mt-1 text-[14px] text-ink-2">
+                {saved.done ? 'Lo terminaste pero no lo guardaste.' : `Quedaste en el paso ${Math.min(saved.idx + 1, saved.total)} de ${saved.total}.`} Tus series anotadas siguen guardadas.
+              </p>
+              <Button variant="fit" size="lg" block className="mt-3" onClick={resume}>
+                <Play size={20} fill="currentColor" /> Retomar donde quedé
+              </Button>
+              <Button variant="soft" block className="mt-2" onClick={start}>
+                Empezar de cero
+              </Button>
+            </Card>
+          ) : (
+            <Button variant="fit" size="lg" block className="mt-4" onClick={start}>
+              <Play size={20} fill="currentColor" /> Empezar
+            </Button>
+          )}
           <p className="mt-3 text-center text-xs text-ink-3">La pantalla se mantiene encendida durante el entrenamiento.</p>
         </div>
       </div>
@@ -414,7 +539,9 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
   // ---------------- Entrenando ----------------
   const totalSteps = steps.length;
   const progress = (idx + (phase === 'rest' ? 1 : 0)) / totalSteps;
-  const timed = step ? stepSeconds(step) : null;
+  const timed = step ? stepSeconds(step, ex) : null;
+  const sw = step ? switchAt(step, ex) : null;
+  const paused = pausedLeft != null && pauseStart.current != null ? now - pauseStart.current : 0;
   const header =
     step?.kind === 'set' ? `Serie ${step.set} de ${step.sets}` : step?.kind === 'work' ? `${step.blockName} · vuelta ${step.round}/${step.rounds} · ${step.item}/${step.items}` : 'Calentamiento';
   const prev = exId ? lastSets(exId) : null;
@@ -435,7 +562,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
             <span>
               {Math.min(idx + 1, totalSteps)}/{totalSteps}
             </span>
-            <span className="num">{fmtClock((now - startedAt) / 1000)}</span>
+            <span className="num">{fmtClock(Math.max(0, now - startedAt - awayMs - paused) / 1000)}</span>
           </div>
         </div>
         <button onClick={() => setListOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2" aria-label="Ver lista">
@@ -474,7 +601,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-bold uppercase tracking-wide text-ink-3">Siguiente</div>
                 <div className="truncate text-lg font-extrabold">{nextEx?.name ?? 'Calentamiento'}</div>
-                <div className="text-sm text-ink-2">{stepTarget(nextStep)}</div>
+                <div className="text-sm text-ink-2">{stepTarget(nextStep, nextEx)}</div>
               </div>
             </Card>
           )}
@@ -498,8 +625,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
           <div className="mt-3 text-center">
             <div className="text-[26px] font-extrabold leading-tight tracking-tight">{step.kind === 'warmup' ? 'Calentamiento' : ex?.name}</div>
             <div className="text-lg font-bold text-ink-2">
-              {stepTarget(step)}
-              {ex?.perSide ? ' por lado' : ''}
+              {stepTarget(step, ex)}
               {step.kind === 'set' && step.load ? <span className="text-fit"> · {step.load}</span> : null}
             </div>
             {step.kind === 'set' && step.note && <div className="text-sm text-fit">{step.note}</div>}
@@ -509,6 +635,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
           {timed ? (
             <div className="mt-4 flex flex-col items-center">
               <div className="num text-6xl font-extrabold">{fmtClock(left ?? timed)}</div>
+              {sw != null && <div className="mt-1 rounded-full bg-fit-soft px-3 py-1 text-xs font-bold text-fit">{(left ?? timed) > sw ? 'Primer lado' : 'Segundo lado'} · te avisamos cuándo cambiar</div>}
               <div className="mt-3 flex gap-2">
                 <Button variant="soft" onClick={togglePause}>
                   {pausedLeft != null ? <Play size={18} /> : <Pause size={18} />} {pausedLeft != null ? 'Seguir' : 'Pausa'}
@@ -549,7 +676,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
           </button>
           {nextStep && (
             <div className="mt-2 text-center text-xs text-ink-3">
-              Después: {nextEx?.name} · {stepTarget(nextStep)}
+              Después: {nextEx?.name} · {stepTarget(nextStep, nextEx)}
             </div>
           )}
         </div>
@@ -578,7 +705,7 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
                 >
                   <span className={cx('flex h-6 w-6 items-center justify-center rounded-full text-[11px]', lg?.done ? 'bg-ok text-white' : i === idx ? 'bg-fit text-white' : 'bg-surface-2 text-ink-3')}>{lg?.done ? <Check size={14} /> : i + 1}</span>
                   <span className="min-w-0 flex-1 truncate text-[14px]">{s.kind === 'warmup' ? 'Calentamiento' : e?.name}</span>
-                  <span className="text-xs text-ink-3">{stepTarget(s)}</span>
+                  <span className="text-xs text-ink-3">{stepTarget(s, e)}</span>
                 </button>
               );
             })}
@@ -594,8 +721,10 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
               block
               onClick={() => {
                 setExitOpen(false);
+                closePause();
                 setPhase('done');
                 setEndsAt(null);
+                setPausedLeft(null);
               }}
             >
               Terminar y guardar lo hecho
@@ -603,7 +732,16 @@ export default function WorkoutPlayer({ routineId, sessionId }: { routineId?: st
             <Button variant="soft" block onClick={() => setExitOpen(false)}>
               Seguir entrenando
             </Button>
-            <Button variant="danger" block onClick={() => navigate('ejercicio', { replace: true })}>
+            <Button
+              variant="danger"
+              block
+              onClick={() => {
+                closed.current = true;
+                clearActive();
+                setExitOpen(false);
+                afterSheetClose(() => navigate('ejercicio', { replace: true }));
+              }}
+            >
               Salir sin guardar
             </Button>
           </div>

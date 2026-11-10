@@ -78,6 +78,21 @@ export interface Food {
   fdcId?: number;
   barcode?: string;
   image?: string;
+  /** Si el alimento es una receta propia: ingredientes y porciones que rinde. */
+  recipe?: Recipe;
+}
+
+export interface RecipeItem {
+  foodId: string;
+  name: string;
+  grams: number;
+  unit: 'g' | 'ml';
+  per100: Macros;
+}
+
+export interface Recipe {
+  servings: number;
+  items: RecipeItem[];
 }
 
 export interface Macros {
@@ -274,6 +289,41 @@ export interface Workout {
 export interface WeightEntry {
   date: string;
   kg: number;
+}
+
+/** Medidas corporales en cm. */
+export interface Measure {
+  date: string;
+  cintura?: number;
+  pecho?: number;
+  cadera?: number;
+  brazo?: number;
+  muslo?: number;
+}
+
+// ===================== Plan de comidas =====================
+export interface PlanItem {
+  foodId: string;
+  grams: number;
+}
+
+export interface PlanMeal {
+  meal: MealId;
+  /** Id de la plantilla usada (para poder cambiarla por otra). */
+  tpl: string;
+  name: string;
+  items: PlanItem[];
+}
+
+export interface MealPlan {
+  /** Fecha (YYYY-MM-DD) del primer día del plan. */
+  createdAt: string;
+  kcal: number;
+  protein: number;
+  veg?: boolean;
+  days: PlanMeal[][];
+  /** Ítems de la lista de compras ya tildados (foodId). */
+  checked: string[];
 }
 
 export interface ActivePlan {

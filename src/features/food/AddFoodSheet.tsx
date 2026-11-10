@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Barcode, ChevronLeft, Globe, Loader2, Plus, Search, Star, Trash2, Zap, PencilLine, History, UtensilsCrossed } from 'lucide-react';
+import { Barcode, ChefHat, ChevronLeft, Globe, Loader2, Pencil, Plus, Search, Star, Trash2, Zap, PencilLine, History, UtensilsCrossed } from 'lucide-react';
 import type { EntryDraft, Food, MealId } from '../../types.ts';
 import { useStore, useUI } from '../../store/useStore.ts';
 import { MEALS, mealForNow, useDay } from '../../store/derived.ts';
@@ -11,10 +11,12 @@ import { Button, Chip, Empty, Field, NumberInput, Sheet, cx, inputCls } from '..
 import { CATEGORY_EMOJI, FoodDetail, type PortionChoice } from './FoodDetail.tsx';
 import CustomFoodForm from './CustomFoodForm.tsx';
 import BarcodeScanner from './BarcodeScanner.tsx';
+import RecipeForm from './RecipeForm.tsx';
+import { dayLabel, todayISO } from '../../lib/dates.ts';
 import { fmt } from '../../lib/format.ts';
 
 type Tab = 'buscar' | 'recientes' | 'favoritos' | 'mios' | 'comidas';
-type View = { v: 'list' } | { v: 'detail'; food: Food } | { v: 'custom'; barcode?: string; name?: string } | { v: 'scan' } | { v: 'quick' };
+type View = { v: 'list' } | { v: 'detail'; food: Food } | { v: 'custom'; barcode?: string; name?: string; food?: Food } | { v: 'recipe'; food?: Food } | { v: 'scan' } | { v: 'quick' };
 
 const POPULAR = ['huevo', 'pollo-pechuga', 'arroz-blanco', 'banana', 'pan-frances', 'leche-entera', 'yogur-entero', 'manzana', 'avena', 'fideos', 'milanesa-carne-horno', 'cafe-con-leche', 'mate', 'empanada-carne', 'tomate', 'palta'];
 
@@ -34,8 +36,9 @@ export function draftFrom(food: Food, c: Pick<PortionChoice, 'amount' | 'portion
   };
 }
 
+/** Porción que se usa al tocar "+": nunca el envase entero de un producto (sería una carga enorme sin querer). */
 function defaultPortion(f: Food) {
-  return f.portions[0] ?? { label: `100 ${f.unit}`, grams: 100 };
+  return f.portions.find((p) => !p.label.startsWith('Envase completo')) ?? { label: `100 ${f.unit}`, grams: 100 };
 }
 
 function FoodRow({ food, onOpen, onQuick, sub }: { food: Food; onOpen: () => void; onQuick: () => void; sub?: string }) {
@@ -133,7 +136,7 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
     ) : (
       <button onClick={() => setView({ v: 'list' })} className="-ml-1 flex items-center gap-1 text-lg font-bold">
         <ChevronLeft size={22} />
-        {view.v === 'detail' ? 'Porción' : view.v === 'custom' ? 'Nuevo alimento' : view.v === 'scan' ? 'Escanear código' : 'Agregado rápido'}
+        {view.v === 'detail' ? 'Porción' : view.v === 'custom' ? (view.food ? 'Editar alimento' : 'Nuevo alimento') : view.v === 'recipe' ? (view.food ? 'Editar receta' : 'Nueva receta') : view.v === 'scan' ? 'Escanear código' : 'Agregado rápido'}
       </button>
     );
 
@@ -192,7 +195,7 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
 
           {day && (
             <div className="mb-1 flex items-center justify-between rounded-2xl bg-surface-2 px-3 py-2 text-[13px]">
-              <span className="text-ink-3">Te quedan hoy</span>
+              <span className="text-ink-3">{date === todayISO() ? 'Te quedan hoy' : `Te quedan · ${dayLabel(date).toLowerCase()}`}</span>
               <span className={cx('num font-extrabold', day.remaining.kcal < 0 ? 'text-danger' : 'text-food')}>{fmt(day.remaining.kcal)} kcal</span>
             </div>
           )}
@@ -271,6 +274,9 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
                 <Button variant="soft" onClick={() => setView({ v: 'custom' })}>
                   <PencilLine size={16} /> Crear alimento
                 </Button>
+                <Button variant="soft" className="col-span-2" onClick={() => setView({ v: 'recipe' })}>
+                  <ChefHat size={16} /> Armar una receta con ingredientes
+                </Button>
               </div>
             </div>
           ) : tab === 'recientes' ? (
@@ -298,22 +304,37 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
             )
           ) : tab === 'mios' ? (
             <div>
-              <Button variant="food" block className="mt-2" onClick={() => setView({ v: 'custom' })}>
-                <Plus size={18} /> Crear alimento propio
-              </Button>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Button variant="food" onClick={() => setView({ v: 'custom' })}>
+                  <Plus size={18} /> Alimento
+                </Button>
+                <Button variant="outline" onClick={() => setView({ v: 'recipe' })}>
+                  <ChefHat size={18} /> Receta
+                </Button>
+              </div>
               <div className="mt-2 divide-y divide-line">
                 {customFoods.map((f) => (
                   <div key={f.id} className="flex items-center gap-1">
                     <div className="min-w-0 flex-1">
                       <FoodRow food={f} onOpen={() => setView({ v: 'detail', food: f })} onQuick={() => quickAdd(f)} />
                     </div>
-                    <button aria-label="Eliminar alimento" onClick={() => removeCustomFood(f.id)} className="flex h-9 w-9 items-center justify-center rounded-full text-ink-3 hover:text-danger">
+                    <button aria-label={`Editar ${f.name}`} onClick={() => setView(f.recipe ? { v: 'recipe', food: f } : { v: 'custom', food: f })} className="flex h-9 w-9 items-center justify-center rounded-full text-ink-3 hover:text-ink">
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      aria-label={`Eliminar ${f.name}`}
+                      onClick={() => {
+                        removeCustomFood(f.id);
+                        toast(`${f.name} eliminado`, { action: { label: 'Deshacer', run: () => saveCustomFood(f) } });
+                      }}
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-ink-3 hover:text-danger"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
                 ))}
               </div>
-              {!customFoods.length && <Empty title="Tus alimentos" text="Cargá recetas caseras o productos con su etiqueta nutricional. Los productos escaneados también se guardan acá." />}
+              {!customFoods.length && <Empty title="Tus alimentos" text="Cargá un producto con su etiqueta, o armá una receta con ingredientes y la app calcula cada porción. Los productos escaneados también se guardan acá." />}
             </div>
           ) : (
             <div>
@@ -376,10 +397,26 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
 
       {view.v === 'custom' && (
         <CustomFoodForm
+          key={view.food?.id ?? 'new'}
           barcode={view.barcode}
           initialName={view.name}
+          initial={view.food}
           onSaved={(f) => {
             saveCustomFood(f);
+            if (view.food) toast('Cambios guardados ✓');
+            setView({ v: 'detail', food: f });
+          }}
+        />
+      )}
+
+      {view.v === 'recipe' && (
+        <RecipeForm
+          key={view.food?.id ?? 'new'}
+          foods={all}
+          initial={view.food}
+          onSaved={(f) => {
+            saveCustomFood(f);
+            toast(view.food ? 'Receta actualizada ✓' : 'Receta guardada en “Mis alimentos” ✓');
             setView({ v: 'detail', food: f });
           }}
         />

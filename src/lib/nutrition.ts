@@ -97,10 +97,40 @@ export interface DayTargets extends Targets {
   bonusWater: number;
 }
 
+/** Foto de los objetivos vigentes desde una fecha: así los días pasados no cambian si después cambiás tu perfil. */
+export interface TargetLog {
+  from: string;
+  base: Targets;
+  exerciseBack: number;
+}
+
+const snapKey = (t: Pick<TargetLog, 'base' | 'exerciseBack'>) =>
+  [t.base.kcal, t.base.protein, t.base.carbs, t.base.fat, t.base.waterMl, t.exerciseBack].join('|');
+
+/** Devuelve el historial de objetivos actualizado después de un cambio de perfil. */
+export function nextTargetLog(oldP: Profile | null, newP: Profile | null, log: TargetLog[], today: string): TargetLog[] {
+  let out = log;
+  if (!out.length && oldP) out = [{ from: (oldP.createdAt || today).slice(0, 10), base: baseTargets(oldP), exerciseBack: oldP.exerciseBack }];
+  if (!newP) return out;
+  const snap = { base: baseTargets(newP), exerciseBack: newP.exerciseBack };
+  const last = out[out.length - 1];
+  if (last && snapKey(last) === snapKey(snap)) return out;
+  if (last && last.from >= today) return [...out.slice(0, -1), { from: today, ...snap }];
+  return [...out, { from: today, ...snap }];
+}
+
+/** Objetivos que regían en una fecha pasada (undefined = usar el perfil actual). */
+export function targetsAt(log: TargetLog[] | undefined, date: string, today: string): TargetLog | undefined {
+  if (!log?.length || date >= today) return undefined;
+  let found = log[0];
+  for (const l of log) if (l.from <= date) found = l;
+  return found;
+}
+
 /** Objetivo del día = base + (kcal netas del ejercicio × % elegido). El extra va 80% a carbohidratos y 20% a grasas. */
-export function dayTargets(p: Profile, exerciseNetKcal: number, exerciseMin: number): DayTargets {
-  const base = baseTargets(p);
-  const bonus = Math.round(exerciseNetKcal * p.exerciseBack);
+export function dayTargets(p: Profile, exerciseNetKcal: number, exerciseMin: number, snap?: Pick<TargetLog, 'base' | 'exerciseBack'>): DayTargets {
+  const base = snap?.base ?? baseTargets(p);
+  const bonus = Math.round(exerciseNetKcal * (snap?.exerciseBack ?? p.exerciseBack));
   const bonusCarbs = Math.round((bonus * 0.8) / 4);
   const bonusFat = Math.round((bonus * 0.2) / 9);
   const bonusWater = Math.round(((exerciseMin / 60) * 500) / 50) * 50;

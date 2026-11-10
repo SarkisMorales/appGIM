@@ -254,8 +254,50 @@ export function Toggle({ checked, onChange, label, desc }: { checked: boolean; o
 }
 
 // ---------------- Sheet (modal inferior) ----------------
+// El botón/gesto "atrás" del teléfono cierra la ventana abierta en vez de salir de la pantalla.
+const sheetStack: { id: number; close: () => void }[] = [];
+let sheetSeq = 0;
+let skipPops = 0;
+let afterSettle: (() => void)[] = [];
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    if (skipPops > 0) {
+      skipPops--;
+      if (skipPops === 0) {
+        const fns = afterSettle;
+        afterSettle = [];
+        fns.forEach((f) => f());
+      }
+      return;
+    }
+    sheetStack.pop()?.close();
+  });
+}
+
+/** Ejecuta `fn` cuando terminó de cerrarse la ventana actual (para navegar sin ensuciar el historial). */
+export function afterSheetClose(fn: () => void) {
+  setTimeout(() => (skipPops > 0 ? afterSettle.push(fn) : fn()), 0);
+}
+
 export function Sheet({ open, onClose, title, children, footer, full, accent }: { open: boolean; onClose: () => void; title?: ReactNode; children: ReactNode; footer?: ReactNode; full?: boolean; accent?: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const entry = { id: ++sheetSeq, close: () => closeRef.current() };
+    sheetStack.push(entry);
+    window.history.pushState({ sheet: entry.id }, '');
+    return () => {
+      const i = sheetStack.indexOf(entry);
+      if (i < 0) return; // ya la cerró el botón "atrás"
+      sheetStack.splice(i, 1);
+      if ((window.history.state as { sheet?: number } | null)?.sheet === entry.id) {
+        skipPops++;
+        window.history.back();
+      }
+    };
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;

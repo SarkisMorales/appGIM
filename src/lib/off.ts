@@ -41,6 +41,22 @@ function num(v: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/**
+ * Convierte el texto del envase a gramos o mililitros: "500 g", "1 kg", "1,5 L", "33 cl", "6 x 125 g".
+ * Si no se entiende la unidad devuelve undefined (mejor no ofrecer la porción que ofrecer una equivocada).
+ */
+export function parseQuantity(q?: string): number | undefined {
+  if (!q) return undefined;
+  const s = q.toLowerCase().replace(/,/g, '.');
+  const m = s.match(/(?:(\d+)\s*[x×*]\s*)?(\d+(?:\.\d+)?)\s*(kg|kilos?|g|gr|grs|gramos?|ml|cc|cl|dl|l|lt|lts|litros?)\b/);
+  if (!m) return undefined;
+  const n = parseFloat(m[2]);
+  const u = m[3];
+  const factor = /^k/.test(u) ? 1000 : /^(l|lt|lts|litros?)$/.test(u) ? 1000 : u === 'cl' ? 10 : u === 'dl' ? 100 : 1;
+  const total = n * factor * (m[1] ? parseInt(m[1], 10) : 1);
+  return Number.isFinite(total) ? Math.round(total) : undefined;
+}
+
 export function offToFood(p: OffProduct): Food | null {
   const n = p.nutriments || {};
   let kcal = num(n['energy-kcal_100g']);
@@ -54,12 +70,12 @@ export function offToFood(p: OffProduct): Food | null {
   if (kcal == null && protein == null && carbs == null && fat == null) return null;
   const name = (p.product_name_es || p.product_name || p.generic_name_es || '').trim();
   if (!name) return null;
-  const isLiquid = /\b(ml|cl|l|litro)s?\b/i.test(p.quantity || '') || /\bml\b/i.test(p.serving_size || '');
+  const isLiquid = /\d\s*(ml|cc|cl|dl|l|lt|lts|litros?)\b/i.test(p.quantity || '') || /\d\s*ml\b/i.test(p.serving_size || '');
   const serving = num(p.serving_quantity);
   const portions = [] as Food['portions'];
   if (serving && serving > 0 && serving < 2000) portions.push({ label: `1 porción (${p.serving_size || serving + (isLiquid ? ' ml' : ' g')})`, grams: serving });
-  const pkg = p.quantity ? num(p.quantity.replace(',', '.')) : undefined;
-  if (pkg && pkg > 0 && pkg <= 3000 && pkg !== serving) portions.push({ label: `Envase completo (${p.quantity})`, grams: pkg });
+  const pkg = parseQuantity(p.quantity);
+  if (pkg && pkg > 0 && pkg <= 5000 && pkg !== serving) portions.push({ label: `Envase completo (${p.quantity})`, grams: pkg });
   return {
     id: `off-${p.code}`,
     name,

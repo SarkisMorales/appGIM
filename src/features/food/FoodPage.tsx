@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Dumbbell, MoreHorizontal, Plus, Save, Trash2 } from 'lucide-react';
+import { CalendarDays, Copy, Dumbbell, MoreHorizontal, Plus, Save, Trash2 } from 'lucide-react';
 import type { FoodEntry, MealId } from '../../types.ts';
 import { useStore, useUI } from '../../store/useStore.ts';
 import { MEALS, useDay, useFoodMap } from '../../store/derived.ts';
@@ -9,7 +9,7 @@ import { DateNav } from '../../components/DateNav.tsx';
 import { FoodDetail, MacroSplitBar, CATEGORY_EMOJI } from './FoodDetail.tsx';
 import { draftFrom } from './AddFoodSheet.tsx';
 import { WaterCard } from './WaterSheet.tsx';
-import { addDays } from '../../lib/dates.ts';
+import { addDays, dayLabel, todayISO } from '../../lib/dates.ts';
 import { fmt, fmt1 } from '../../lib/format.ts';
 import { navigate } from '../../lib/router.ts';
 
@@ -130,6 +130,62 @@ function MealMenu({ meal, date, items, onClose }: { meal: MealId; date: string; 
   );
 }
 
+/** Copiar todas las comidas de otro día (ayer por defecto) al día que estás viendo. */
+function CopyDaySheet({ date, onClose }: { date: string; onClose: () => void }) {
+  const entries = useStore((s) => s.entries);
+  const copyDay = useStore((s) => s.copyDay);
+  const removeEntries = useStore((s) => s.removeEntries);
+  const toast = useUI((s) => s.toast);
+  const [from, setFrom] = useState(addDays(date, -1));
+  const src = entries.filter((e) => e.date === from);
+  const tot = sumMacros(src);
+  const here = entries.filter((e) => e.date === date).length;
+  const target = dayLabel(date).toLowerCase();
+  // Últimos días con algo cargado, para elegir con un toque.
+  const recent = [...new Set(entries.map((e) => e.date))].filter((d) => d !== date).sort().reverse().slice(0, 5);
+  return (
+    <Sheet open onClose={onClose} title="Copiar un día completo" accent="var(--food)">
+      <p className="text-[13px] text-ink-2">Ideal si comés parecido varios días: copiás todo y después ajustás lo que cambió.</p>
+      {recent.length > 0 && (
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {recent.map((d) => (
+            <button key={d} onClick={() => setFrom(d)} className={cx('shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold', from === d ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink-2')}>
+              {dayLabel(d)}
+            </button>
+          ))}
+        </div>
+      )}
+      <Field label="Copiar desde" className="mt-3">
+        <input type="date" className={inputCls} value={from} max={todayISO()} onChange={(e) => e.target.value && setFrom(e.target.value)} />
+      </Field>
+      <div className="mt-3 rounded-2xl bg-surface-2 p-3 text-[13px]">
+        {src.length ? (
+          <>
+            <b>{dayLabel(from)}</b>: {src.length} alimento{src.length > 1 ? 's' : ''} · <span className="num">{fmt(tot.kcal)} kcal · {fmt(tot.protein)} g de proteína</span>
+          </>
+        ) : (
+          <span className="text-ink-3">Ese día no tiene comidas cargadas.</span>
+        )}
+        {here > 0 && src.length > 0 && <div className="mt-1 text-xs text-ink-3">Se suman a los {here} que ya cargaste en {target}.</div>}
+      </div>
+      <Button
+        variant="food"
+        size="lg"
+        block
+        className="mt-4"
+        disabled={!src.length || from === date}
+        onClick={() => {
+          const ids = copyDay(from, date);
+          toast(`Copiamos ${ids.length} alimento${ids.length > 1 ? 's' : ''} a ${target}`, { action: { label: 'Deshacer', run: () => removeEntries(ids) } });
+          onClose();
+        }}
+      >
+        <Copy size={18} /> Copiar a {target}
+      </Button>
+    </Sheet>
+  );
+}
+
 export default function FoodPage() {
   const date = useUI((s) => s.date);
   const openSheet = useUI((s) => s.openSheet);
@@ -137,6 +193,7 @@ export default function FoodPage() {
   const foods = useFoodMap();
   const [editing, setEditing] = useState<FoodEntry | null>(null);
   const [menu, setMenu] = useState<MealId | null>(null);
+  const [copyOpen, setCopyOpen] = useState(false);
   if (!day) return null;
   const t = day.targets;
 
@@ -173,7 +230,16 @@ export default function FoodPage() {
         </div>
       </Card>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button onClick={() => setCopyOpen(true)} className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2.5 text-[13px] font-bold text-ink-2 active:scale-[0.98]">
+          <Copy size={16} /> Copiar un día
+        </button>
+        <button onClick={() => navigate('plan-comidas')} className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2.5 text-[13px] font-bold text-ink-2 active:scale-[0.98]">
+          <CalendarDays size={16} /> Plan semanal
+        </button>
+      </div>
+
+      <div className="mt-3 space-y-3">
         {MEALS.map((ml) => {
           const items = day.byMeal[ml.id];
           const tot = sumMacros(items);
@@ -224,6 +290,7 @@ export default function FoodPage() {
       </div>
 
       {editing && <EntryEditSheet entry={editing} onClose={() => setEditing(null)} />}
+      {copyOpen && <CopyDaySheet date={date} onClose={() => setCopyOpen(false)} />}
       {menu && <MealMenu meal={menu} date={date} items={day.byMeal[menu]} onClose={() => setMenu(null)} />}
     </div>
   );

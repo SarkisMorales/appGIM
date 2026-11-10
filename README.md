@@ -56,7 +56,7 @@ Valores calculados por la app para una persona de **70 kg** (se recalculan con t
 - **Animación**: todos los ejercicios tienen animación propia (figura SVG), sin depender de internet ni de servicios pagos.
 
 - **Entrenamiento guiado**: animación grande, series y repeticiones, registro de peso por serie (“la última vez hiciste…” y sugerencia de progresión), temporizadores de trabajo/descanso, pitidos 3‑2‑1, **voz guía en español**, vibración y pantalla siempre encendida.
-- **Plan semanal** (“Hoy te toca…”), historial con mapa de calor, récords (1RM estimado) y **creador de rutinas propias**.
+- **Plan de entrenamiento semanal** (“Hoy te toca…”), historial con mapa de calor, récords (1RM estimado) y **creador de rutinas propias**.
 - **Actividades rápidas**: caminar, correr, bici, natación, fútbol, pádel, tenis, básquet, vóley, boxeo, yoga, baile, soga… con METs oficiales.
 
 ### ⚖️ Balance (la fusión)
@@ -67,7 +67,17 @@ Valores calculados por la app para una persona de **70 kg** (se recalculan con t
 ### 📈 Progreso
 - Peso con **línea de tendencia**, meta, IMC; semana de calorías vs. objetivo; minutos activos vs. los 150 de la OMS.
 - **Gasto real adaptativo**: con tus registros de comida y peso estima tu metabolismo real (lo que hacen apps pagas como MacroFactor).
-- Logros y racha de días.
+- Logros y racha de días (los logros ganados quedan guardados).
+- **Medidas corporales** (cintura, pecho, cadera, brazo, muslo) con gráfico, y **fotos de progreso** con comparación “antes y ahora”. Las fotos se guardan solo en el dispositivo.
+- **Gráfico de fuerza por ejercicio** (1RM estimado, o mejor serie si es sin peso).
+
+### 🧰 Además
+- **Recetas**: armás un plato con ingredientes y gramos, decís cuántas porciones rinde y la app calcula cada porción.
+- **Plan semanal de comidas**: menú de 7 días ajustado a tus calorías y proteína (opción vegetariana), cada comida se puede cambiar o registrar con un toque, y sale la **lista de compras** para compartir.
+- **Copiar un día completo** de comidas y editar tus alimentos propios.
+- **Entrenamiento a prueba de cortes**: si se cierra la app o tocás “atrás”, lo retomás donde quedó. En los ejercicios “por lado” el reloj cuenta los dos lados y avisa cuándo cambiar.
+- **Historial estable**: si cambiás tu peso u objetivo, los días pasados conservan el objetivo que tenían.
+- **Backup** con recordatorio cada 2 semanas y confirmación antes de restaurar.
 
 ## Cómo calculamos (fuentes)
 

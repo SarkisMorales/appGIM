@@ -1,4 +1,4 @@
-import { Activity, Beef, ChevronRight, Dumbbell, Flame, Plus, Sparkles, Utensils, Zap } from 'lucide-react';
+import { Activity, Beef, ChevronRight, Download, Dumbbell, Flame, Plus, ShieldCheck, Sparkles, Utensils, Zap } from 'lucide-react';
 import { useStore, useUI } from '../../store/useStore.ts';
 import { computeStreak, mealForNow, useDay, useFoodMap, type DayData } from '../../store/derived.ts';
 import { EQUIVALENTS, minutesToBurn, per100, scaleMacros, suggestToClose } from '../../lib/nutrition.ts';
@@ -6,6 +6,8 @@ import { postWorkoutProtein } from '../../lib/training.ts';
 import { Card, MacroRow, Rings, SectionTitle, cx } from '../../components/ui.tsx';
 import { DateNav } from '../../components/DateNav.tsx';
 import { PlanCard } from '../exercise/PlanCard.tsx';
+import { ResumeBanner } from '../exercise/ResumeBanner.tsx';
+import { downloadBackup } from '../../lib/backup.ts';
 import { WaterCard } from '../food/WaterSheet.tsx';
 import { navigate } from '../../lib/router.ts';
 import { fmt, fmtMinutes } from '../../lib/format.ts';
@@ -219,6 +221,49 @@ export function Insights({ day }: { day: DayData }) {
   );
 }
 
+/** Recordatorio: los datos viven solo en este dispositivo, así que conviene bajar una copia cada tanto. */
+function BackupReminder() {
+  const entries = useStore((s) => s.entries.length);
+  const workouts = useStore((s) => s.workouts.length);
+  const last = useStore((s) => s.lastBackupAt);
+  const snooze = useStore((s) => s.backupSnoozeUntil);
+  const snoozeBackup = useStore((s) => s.snoozeBackup);
+  const toast = useUI((s) => s.toast);
+  const now = Date.now();
+  const days = last ? Math.floor((now - last) / 86400000) : null;
+  const due = entries + workouts >= 15 && now > snooze && (days == null || days >= 14);
+  if (!due) return null;
+  return (
+    <div className="mt-3 rounded-3xl border border-line bg-surface p-4 shadow-card">
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-bal-soft text-bal">
+          <ShieldCheck size={20} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[15px] font-bold">Guardá una copia de tus datos</div>
+          <p className="mt-0.5 text-[13px] text-ink-2">
+            {days == null ? 'Todavía no hiciste ningún backup.' : `Tu último backup fue hace ${days} días.`} Todo lo que cargaste vive solo en este dispositivo: si se borran los datos del navegador, se pierde.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              className="grad-bal flex h-9 items-center gap-1.5 rounded-2xl px-3 text-sm font-bold text-white active:scale-95"
+              onClick={() => {
+                downloadBackup();
+                toast('Backup descargado ✓ Guardalo en un lugar seguro');
+              }}
+            >
+              <Download size={16} /> Descargar backup
+            </button>
+            <button className="h-9 rounded-2xl px-3 text-sm font-bold text-ink-3" onClick={() => snoozeBackup(7)}>
+              Más tarde
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const profile = useStore((s) => s.profile)!;
   const entries = useStore((s) => s.entries);
@@ -251,6 +296,7 @@ export default function HomePage() {
         <DateNav />
       </div>
 
+      <ResumeBanner className="mb-3" />
       <BalanceCard day={day} />
 
       <div className="mt-3 grid grid-cols-2 gap-3">
@@ -294,6 +340,7 @@ export default function HomePage() {
 
       <SectionTitle>Hidratación</SectionTitle>
       <WaterCard date={date} />
+      <BackupReminder />
     </div>
   );
 }

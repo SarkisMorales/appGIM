@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Award, Beef, Brain, Dumbbell, Flame, Scale, TrendingDown, TrendingUp } from 'lucide-react';
 import { useStore, useUI } from '../../store/useStore.ts';
 import { computeDay, computeStreak } from '../../store/derived.ts';
@@ -6,7 +6,8 @@ import { adaptiveTdee, baseTargets, bmi } from '../../lib/nutrition.ts';
 import { Button, Card, Empty, PageHeader, ProgressBar, SectionTitle, Stat, cx } from '../../components/ui.tsx';
 import { WeightChart, WeekBars, type DayBar } from '../../components/charts.tsx';
 import { fmt, fmt1 } from '../../lib/format.ts';
-import { lastNDays, todayISO } from '../../lib/dates.ts';
+import { lastNDays, shortDate, todayISO } from '../../lib/dates.ts';
+import { MeasuresCard, PhotosCard } from './BodyCards.tsx';
 
 function bmiLabel(b: number) {
   if (b < 18.5) return 'Bajo peso';
@@ -21,10 +22,13 @@ export default function ProgressPage() {
   const entries = useStore((s) => s.entries);
   const workouts = useStore((s) => s.workouts);
   const water = useStore((s) => s.water);
+  const targetLog = useStore((s) => s.targetLog);
+  const earned = useStore((s) => s.badges);
+  const earnBadges = useStore((s) => s.earnBadges);
   const openSheet = useUI((s) => s.openSheet);
   const today = todayISO();
 
-  const week = useMemo(() => lastNDays(today, 7).map((d) => computeDay(profile, d, entries, workouts, water)), [profile, entries, workouts, water, today]);
+  const week = useMemo(() => lastNDays(today, 7).map((d) => computeDay(profile, d, entries, workouts, water, targetLog)), [profile, entries, workouts, water, targetLog, today]);
   const bars: DayBar[] = week.map((d) => ({ date: d.date, kcal: d.consumed.kcal, target: d.targets.kcal, exercise: d.targets.bonus, logged: d.entries.length > 0 }));
   const logged = week.filter((d) => d.entries.length > 0);
   const avg = (f: (d: (typeof week)[number]) => number) => (logged.length ? logged.reduce((a, d) => a + f(d), 0) / logged.length : 0);
@@ -48,7 +52,11 @@ export default function ProgressPage() {
   const lastW = weights[weights.length - 1];
   const change = first && lastW ? lastW.kg - first.kg : 0;
   const goal = profile.targetWeightKg;
-  const goalProgress = goal && first ? Math.max(0, Math.min(1, (first.kg - lastW.kg) / (first.kg - goal))) : 0;
+  const goalSpan = goal && first ? first.kg - goal : 0;
+  const goalProgress = goal && first ? (Math.abs(goalSpan) < 0.05 ? 1 : Math.max(0, Math.min(1, (first.kg - lastW.kg) / goalSpan))) : 0;
+  // "Bien" depende de tu objetivo: bajar si querés bajar, subir si querés ganar músculo.
+  const wantsUp = goal && first ? goal > first.kg : profile.goal === 'subir';
+  const changeGood = Math.abs(change) < 0.05 ? false : profile.goal === 'mantener' && !goal ? false : wantsUp ? change > 0 : change < 0;
 
   const streak = computeStreak(entries, workouts);
   const totalDaysLogged = new Set(entries.map((e) => e.date)).size;
@@ -62,7 +70,12 @@ export default function ProgressPage() {
     { id: 'who', t: '150 minutos', d: 'Meta semanal de la OMS', ok: weekMin >= 150, e: '🌍' },
     { id: 'water', t: 'Bien hidratado', d: '5 días con tu meta de agua', ok: waterDays >= 5, e: '💧' },
     { id: 'month', t: 'Un mes', d: '30 días con comidas registradas', ok: totalDaysLogged >= 30, e: '🗓️' },
-  ];
+  ].map((b) => ({ ...b, ok: b.ok || !!earned[b.id], when: earned[b.id] }));
+  // Los logros ganados se guardan: no se pierden cuando pasa la semana.
+  const newly = badges.filter((b) => b.ok && !earned[b.id]).map((b) => b.id).join(',');
+  useEffect(() => {
+    if (newly) earnBadges(newly.split(','));
+  }, [newly, earnBadges]);
 
   return (
     <div className="anim-fade">
@@ -76,7 +89,7 @@ export default function ProgressPage() {
               {fmt1(lastW?.kg ?? profile.weightKg)} <span className="text-base font-bold text-ink-3">kg</span>
             </div>
             {first && weights.length > 1 && (
-              <div className={cx('flex items-center gap-1 text-sm font-bold', change <= 0 ? 'text-ok' : 'text-ink-2')}>
+              <div className={cx('flex items-center gap-1 text-sm font-bold', changeGood ? 'text-ok' : 'text-ink-2')}>
                 {change <= 0 ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
                 {change > 0 ? '+' : ''}
                 {fmt1(change)} kg desde el inicio
@@ -121,6 +134,12 @@ export default function ProgressPage() {
         </div>
       </Card>
 
+      <SectionTitle>Tu cuerpo</SectionTitle>
+      <div className="space-y-3">
+        <MeasuresCard />
+        <PhotosCard />
+      </div>
+
       <SectionTitle>
         <span className="flex items-center gap-1.5">
           <Brain size={16} className="text-bal" /> Tu gasto real
@@ -160,6 +179,7 @@ export default function ProgressPage() {
             <div className={cx('text-2xl', !b.ok && 'grayscale')}>{b.e}</div>
             <div className="mt-1 text-[13px] font-bold">{b.t}</div>
             <div className="text-[11px] text-ink-3">{b.d}</div>
+            {b.when && <div className="mt-0.5 text-[10px] font-semibold text-carb">Ganado el {shortDate(b.when)}</div>}
           </div>
         ))}
       </div>

@@ -123,6 +123,72 @@ export function WeightChart({ points, goal }: { points: WeightPoint[]; goal?: nu
   );
 }
 
+export interface LinePoint {
+  date: string;
+  v: number;
+}
+
+/** Línea simple con puntos (fuerza por ejercicio, medidas corporales). Un solo eje, tooltip al tocar. */
+export function LineChart({ points, unit, color = 'var(--bal)', label, height = 150 }: { points: LinePoint[]; unit: string; color?: string; label: string; height?: number }) {
+  const H = height;
+  const pad = { l: 34, r: 10, t: 12, b: 22 };
+  const vs = points.map((p) => p.v);
+  let min = Math.min(...vs);
+  let max = Math.max(...vs);
+  const m = Math.max(1, (max - min) * 0.15);
+  min = Math.floor(min - m);
+  max = Math.ceil(max + m);
+  const t0 = new Date(points[0].date).getTime();
+  const span = Math.max(1, new Date(points[points.length - 1].date).getTime() - t0);
+  const x = (k: number) => (points.length === 1 ? (pad.l + W - pad.r) / 2 : pad.l + ((new Date(points[k].date).getTime() - t0) / span) * (W - pad.l - pad.r));
+  const y = (v: number) => pad.t + (1 - (v - min) / (max - min)) * (H - pad.t - pad.b);
+  const hv = useHover(points, x);
+  const sel = hv.i;
+  const path = points.map((p, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
+  const last = points[points.length - 1];
+  return (
+    <div>
+      <svg ref={hv.ref} viewBox={`0 0 ${W} ${H}`} className="w-full touch-none select-none" onPointerMove={hv.onMove} onPointerDown={hv.onMove} onPointerLeave={hv.clear} role="img" aria-label={label}>
+        {[min, (min + max) / 2, max].map((t, k) => (
+          <g key={k}>
+            <line x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeWidth={1} />
+            <text x={pad.l - 6} y={y(t) + 3.5} textAnchor="end" fontSize="10" fill="var(--ink-3)" className="num">
+              {fmt1(t)}
+            </text>
+          </g>
+        ))}
+        <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        {points.map((p, k) => (
+          <circle key={p.date + k} cx={x(k)} cy={y(p.v)} r={k === points.length - 1 ? 4.5 : 3} fill={color} stroke="var(--surface)" strokeWidth={2} />
+        ))}
+        <text x={pad.l} y={H - 5} fontSize="10" fill="var(--ink-3)">
+          {shortDate(points[0].date)}
+        </text>
+        <text x={W - pad.r} y={H - 5} fontSize="10" fill="var(--ink-3)" textAnchor="end">
+          {shortDate(last.date)}
+        </text>
+        {sel != null && (
+          <g>
+            <line x1={x(sel)} x2={x(sel)} y1={pad.t} y2={H - pad.b} stroke="var(--ink-3)" strokeWidth={1} strokeDasharray="3 3" />
+            <circle cx={x(sel)} cy={y(points[sel].v)} r={6} fill="var(--ink)" stroke="var(--surface)" strokeWidth={2} />
+          </g>
+        )}
+      </svg>
+      <div className="num h-5 text-center text-xs text-ink-2">
+        {sel != null ? (
+          <>
+            <b>{shortDate(points[sel].date)}</b>: {fmt1(points[sel].v)} {unit}
+          </>
+        ) : (
+          <span className="text-ink-3">
+            Último: {fmt1(last.v)} {unit} · tocá el gráfico para ver cada registro
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export interface DayBar {
   date: string;
   kcal: number;

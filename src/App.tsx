@@ -19,6 +19,7 @@ import WaterSheet from './features/food/WaterSheet.tsx';
 
 const WorkoutPlayer = lazy(() => import('./features/exercise/WorkoutPlayer.tsx'));
 const RoutineBuilder = lazy(() => import('./features/exercise/RoutineBuilder.tsx'));
+const MealPlanPage = lazy(() => import('./features/food/MealPlanPage.tsx'));
 const DevGallery = lazy(() => import('./features/dev/DevGallery.tsx'));
 
 function useTheme() {
@@ -139,11 +140,24 @@ export default function App() {
   const profile = useStore((s) => s.profile);
   const setDate = useUI((s) => s.setDate);
 
-  // Al volver a la app otro día, la fecha seleccionada vuelve a "hoy".
+  // Si cambió el día (la app quedó abierta de ayer), la fecha seleccionada vuelve a "hoy".
+  // Si es el mismo día, se respeta la fecha que estabas mirando.
   useEffect(() => {
-    const onVis = () => document.visibilityState === 'visible' && setDate(todayISO());
+    let known = todayISO();
+    const check = () => {
+      const now = todayISO();
+      if (now !== known) {
+        known = now;
+        setDate(now);
+      }
+    };
+    const onVis = () => document.visibilityState === 'visible' && check();
     document.addEventListener('visibilitychange', onVis);
-    return () => document.removeEventListener('visibilitychange', onVis);
+    const t = setInterval(check, 60000);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      clearInterval(t);
+    };
   }, [setDate]);
 
   if (route[0] === 'dev' && import.meta.env.DEV) {
@@ -175,6 +189,14 @@ export default function App() {
       break;
     case 'comida':
       page = <FoodPage />;
+      break;
+    case 'plan-comidas':
+      page = (
+        <Suspense fallback={null}>
+          <MealPlanPage />
+        </Suspense>
+      );
+      tab = 'comida';
       break;
     case 'ejercicio':
       page = <ExercisePage tab={r1} />;
