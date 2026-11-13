@@ -255,6 +255,20 @@ input[type="number"] {
 .anim-rise {
   animation: rise 0.35s cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
+@keyframes scan-sweep {
+  0%,
+  100% {
+    transform: translateY(-40px);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(40px);
+    opacity: 1;
+  }
+}
+.scan-line {
+  animation: scan-sweep 2.2s ease-in-out infinite;
+}
 .pulse-ring::after {
   content: "";
   position: absolute;
@@ -271,7 +285,8 @@ input[type="number"] {
   .anim-rise {
     animation: none;
   }
-  .pulse-ring::after {
+  .pulse-ring::after,
+  .scan-line {
     animation: none;
   }
 }

@@ -31,6 +31,9 @@ export const MEAL_TEMPLATES: MealTpl[] = [
   { id: 'd4', meal: 'desayuno', veg: true, name: 'Yogur griego con granola y frutillas', items: [{ id: 'yogur-griego', g: 200, p: true }, { id: 'granola', g: 40 }, { id: 'frutillas', g: 150, fix: true }] },
   { id: 'd5', meal: 'desayuno', name: 'Tostado de jamón y queso', items: [{ id: 'pan-lactal', g: 50, fix: true }, { id: 'jamon-cocido', g: 40, p: true }, { id: 'queso-maquina', g: 30, p: true }, { id: 'cafe-con-leche', g: 250, fix: true }, { id: 'mandarina', g: 88, u: true }] },
   { id: 'd6', meal: 'desayuno', veg: true, name: 'Licuado de banana con avena', items: [{ id: 'licuado-banana', g: 300, p: true }, { id: 'avena', g: 30 }, { id: 'almendras', g: 20 }] },
+  { id: 'd7', meal: 'desayuno', veg: true, name: 'Yogur proteico con granola y frutos rojos', items: [{ id: 'yogur-proteico', g: 170, p: true }, { id: 'granola', g: 30 }, { id: 'frutos-rojos', g: 100, fix: true }] },
+  { id: 'd8', meal: 'desayuno', veg: true, name: 'Omelette de claras con tostadas', items: [{ id: 'omelette-claras', g: 110, p: true, u: true }, { id: 'pan-integral', g: 56, u: true }, { id: 'naranja', g: 140, u: true }, { id: 'cafe', g: 150, fix: true }] },
+  { id: 'd9', meal: 'desayuno', veg: true, name: 'Panqueques de avena y banana con yogur', items: [{ id: 'panqueques-avena', g: 180, u: true }, { id: 'yogur-griego', g: 100, p: true }] },
 
   // ---------------- Almuerzo ----------------
   { id: 'a1', meal: 'almuerzo', name: 'Pollo con arroz y ensalada', items: [{ id: 'pollo-pechuga', g: 150, p: true }, { id: 'arroz-blanco', g: 160 }, { id: 'ensalada-mixta', g: 200, fix: true }, { id: 'aceite-oliva', g: 10, fix: true }] },
@@ -45,6 +48,9 @@ export const MEAL_TEMPLATES: MealTpl[] = [
   { id: 'a10', meal: 'almuerzo', veg: true, name: 'Garbanzos con arroz y verduras', items: [{ id: 'garbanzos', g: 165, p: true }, { id: 'arroz-integral', g: 160 }, { id: 'verduras-salteadas', g: 200, fix: true }] },
   { id: 'a11', meal: 'almuerzo', veg: true, name: 'Ravioles con salsa de tomate', items: [{ id: 'ravioles', g: 250, p: true }, { id: 'salsa-tomate', g: 125, fix: true }, { id: 'queso-rallado', g: 10, fix: true }, { id: 'ensalada-mixta', g: 150, fix: true }] },
   { id: 'a12', meal: 'almuerzo', veg: true, name: 'Tofu salteado con quinoa', items: [{ id: 'tofu', g: 150, p: true }, { id: 'quinoa', g: 185 }, { id: 'verduras-salteadas', g: 250, fix: true }] },
+  { id: 'a13', meal: 'almuerzo', name: 'Wok de pollo con arroz', items: [{ id: 'wok-pollo', g: 350, p: true }, { id: 'arroz-blanco', g: 160 }] },
+  { id: 'a14', meal: 'almuerzo', name: 'Colita de cuadril con papas y ensalada', items: [{ id: 'colita-cuadril', g: 180, p: true }, { id: 'papa-hervida', g: 200 }, { id: 'ensalada-mixta', g: 200, fix: true }] },
+  { id: 'a15', meal: 'almuerzo', veg: true, name: 'Ensalada de quinoa con huevo', items: [{ id: 'ensalada-quinoa', g: 300 }, { id: 'huevo-duro', g: 100, p: true, u: true }] },
 
   // ---------------- Merienda ----------------
   { id: 'm1', meal: 'merienda', veg: true, name: 'Yogur con banana y nueces', items: [{ id: 'yogur-descremado', g: 190, p: true }, { id: 'banana', g: 118, u: true }, { id: 'nueces', g: 15 }] },
@@ -53,6 +59,8 @@ export const MEAL_TEMPLATES: MealTpl[] = [
   { id: 'm4', meal: 'merienda', veg: true, name: 'Licuado proteico de banana', items: [{ id: 'whey', g: 30, p: true }, { id: 'leche-descremada', g: 250 }, { id: 'banana', g: 118, u: true }] },
   { id: 'm5', meal: 'merienda', veg: true, name: 'Manzana con maní', items: [{ id: 'manzana', g: 182, u: true }, { id: 'mani', g: 28, p: true }] },
   { id: 'm6', meal: 'merienda', veg: true, name: 'Cottage con frutillas', items: [{ id: 'cottage', g: 150, p: true }, { id: 'frutillas', g: 150, fix: true }, { id: 'galletas-arroz', g: 18, u: true }] },
+  { id: 'm7', meal: 'merienda', veg: true, name: 'Batido de proteína con banana', items: [{ id: 'batido-proteina-leche', g: 280, p: true }, { id: 'banana', g: 118, u: true }] },
+  { id: 'm8', meal: 'merienda', veg: true, name: 'Tostadas con cuartirolo y tomate', items: [{ id: 'pan-integral', g: 56, u: true }, { id: 'cuartirolo', g: 50, p: true }, { id: 'tomate', g: 100, fix: true }, { id: 'te', g: 240, fix: true }] },
 
   // ---------------- Cena ----------------
   { id: 'c1', meal: 'cena', veg: true, name: 'Tarta de verdura con ensalada', items: [{ id: 'tarta-verdura', g: 250, p: true }, { id: 'ensalada-mixta', g: 200, fix: true }, { id: 'aceite-oliva', g: 5, fix: true }] },
@@ -65,10 +73,14 @@ export const MEAL_TEMPLATES: MealTpl[] = [
   { id: 'c8', meal: 'cena', name: 'Lomo con puré y ensalada', items: [{ id: 'lomo', g: 150, p: true }, { id: 'pure-papa', g: 180 }, { id: 'ensalada-mixta', g: 200, fix: true }] },
   { id: 'c9', meal: 'cena', veg: true, name: 'Polenta con salsa y queso', items: [{ id: 'polenta', g: 300 }, { id: 'salsa-tomate', g: 125, fix: true }, { id: 'queso-cremoso', g: 40, p: true }, { id: 'ensalada-mixta', g: 150, fix: true }] },
   { id: 'c10', meal: 'cena', veg: true, name: 'Medallones de legumbres con batata', items: [{ id: 'medallon-legumbres', g: 160, p: true, u: true }, { id: 'batata', g: 150 }, { id: 'ensalada-mixta', g: 200, fix: true }] },
+  { id: 'c11', meal: 'cena', name: 'Merluza al horno con verduras y papa', items: [{ id: 'merluza', g: 180, p: true }, { id: 'verduras-vapor', g: 250, fix: true }, { id: 'papa-hervida', g: 170 }] },
+  { id: 'c12', meal: 'cena', name: 'Tarta de atún con ensalada', items: [{ id: 'tarta-atun', g: 200, p: true }, { id: 'ensalada-mixta', g: 200, fix: true }] },
+  { id: 'c13', meal: 'cena', veg: true, name: 'Revuelto de verduras con huevos', items: [{ id: 'huevo-revuelto', g: 165, p: true }, { id: 'verduras-salteadas', g: 250, fix: true }, { id: 'pan-integral', g: 28, u: true }] },
 
   // ---------------- Colación proteica (solo si falta proteína) ----------------
   { id: 's1', meal: 'snacks', veg: true, name: 'Yogur griego', items: [{ id: 'yogur-griego', g: 200, p: true }] },
   { id: 's2', meal: 'snacks', veg: true, name: 'Licuado de proteína', items: [{ id: 'whey', g: 30, p: true }, { id: 'leche-descremada', g: 200, p: true }] },
   { id: 's3', meal: 'snacks', veg: true, name: 'Huevos duros', items: [{ id: 'huevo-duro', g: 100, p: true, u: true }] },
   { id: 's4', meal: 'snacks', name: 'Atún con galletas de arroz', items: [{ id: 'atun-agua', g: 120, p: true }, { id: 'galletas-arroz', g: 18, u: true }] },
+  { id: 's5', meal: 'snacks', veg: true, name: 'Yogur alto en proteínas', items: [{ id: 'yogur-proteico', g: 250, p: true }] },
 ];

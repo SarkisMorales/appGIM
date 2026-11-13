@@ -13,9 +13,13 @@ App web gratuita (PWA) para registrar **lo que comés** y **lo que entrenás**, 
 ## Qué incluye
 
 ### 🍽️ Módulo Comida
-- **218 alimentos en español** con valores por 100 g: 158 de **USDA FoodData Central** (dominio público) y 60 platos y productos típicos rioplatenses estimados por receta (milanesas, empanadas, asado, mate, dulce de leche, alfajores, fainá, locro…).
-- Porciones reales (“1 milanesa mediana”, “1 empanada”, “1 taza”…), buscador sin acentos, recientes, favoritos.
-- **Productos de supermercado** vía [Open Food Facts](https://world.openfoodfacts.org) (gratis, sin clave): búsqueda online y **lector de código de barras** con la cámara (nativo en Android; en iPhone usa ZXing en WebAssembly, también gratis).
+- **525 alimentos en español** con valores por 100 g: 298 de **USDA FoodData Central** (dominio público) y 227 platos y productos típicos estimados por receta o rótulo (milanesas, empanadas, asado y achuras, pastas, guisos, sándwiches, tartas, mate, alfajores, golosinas, suplementos…). Incluye versiones **crudas para pesar** (pollo, carne, arroz, legumbres, papa).
+- Porciones reales (“1 milanesa mediana”, “1 empanada”, “1 taza”…), recientes y favoritos primero.
+- **Buscador tolerante**: plurales (“huevos”), errores de tipeo (“milaneza”) y nombres de otros países (aguacate → palta, frijoles → porotos, fresa → frutilla, hot dog → pancho).
+- **Productos de supermercado** vía [Open Food Facts](https://world.openfoodfacts.org) (gratis, sin clave): se busca solo si no está en la base, y muestra **Nutri-Score** y grado de procesamiento (NOVA).
+- **Escáner de códigos** con la cámara: EAN, UPC (incluido UPC-E), cajas ITF-14, GS1-128/DataBar y los **QR nuevos de los envases** (GS1 Digital Link). Linterna, zoom, cambio de cámara, foco al tocar, **lectura desde una foto** y compatible con **lectores USB/Bluetooth**. Nativo en Android; en iPhone y PC usa ZXing en WebAssembly.
+- Si el producto no está o no tiene tabla: **“Leer la tabla nutricional con la cámara”** (OCR con Tesseract.js, corre en el teléfono): endereza la foto, borra las líneas de la tabla, entiende rótulos del Mercosur con columnas “100 g / porción” y corrige errores típicos (comas perdidas, la “g” leída como 9) validando contra las calorías. Queda guardado con su código para la próxima.
+- Fibra del día, y en cada alimento azúcares, grasas saturadas y sodio cuando hay datos.
 - Alimentos propios, **comidas guardadas** para cargar con un toque, copiar la comida de ayer, agregado rápido de calorías.
 - Desayuno, almuerzo, **merienda**, cena y snacks. Agua por vasos.
 - Cada alimento muestra su **equivalencia en ejercicio** (“= 25 min caminando rápido”).
@@ -92,6 +96,7 @@ Valores calculados por la app para una persona de **70 kg** (se recalculan con t
 | Fibra / agua | 14 g cada 1.000 kcal / ~35 ml por kg + 500 ml por hora de ejercicio | Guías Alimentarias EE.UU.; ACSM |
 | Alimentos | USDA FoodData Central SR Legacy | [fdc.nal.usda.gov](https://fdc.nal.usda.gov) |
 | Productos | Open Food Facts (ODbL) | [openfoodfacts.org](https://world.openfoodfacts.org) |
+| Lectura de etiquetas | Tesseract.js + idioma español (Apache 2.0) | [tesseract.projectnaptha.com](https://tesseract.projectnaptha.com) |
 
 Las rutinas se basan en: Klika y Jordan (2013, “7 minutos”), StrongLifts 5×5 / Starting Strength, PPL de r/Fitness, PHUL (Brandon Campbell), 5/3/1 de Jim Wendler, Couch to 5K y la rutina recomendada de r/bodyweightfitness.
 

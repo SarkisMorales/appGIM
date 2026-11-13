@@ -227,6 +227,7 @@ export default function FoodPage() {
           <MacroRow label="Proteína" value={day.consumed.protein} target={t.protein} color="var(--pro)" />
           <MacroRow label="Carbohidratos" value={day.consumed.carbs} target={t.carbs} color="var(--carb)" />
           <MacroRow label="Grasas" value={day.consumed.fat} target={t.fat} color="var(--fat)" />
+          <MacroRow label="Fibra" value={day.consumed.fiber} target={t.fiber} color="var(--fit)" />
         </div>
       </Card>
 

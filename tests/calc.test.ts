@@ -101,7 +101,7 @@ test('alimentos: datos coherentes (Atwater) y porciones válidas', () => {
     ids.add(f.id);
     assert.ok(f.kcal >= 0 && f.protein >= 0 && f.carbs >= 0 && f.fat >= 0, f.id);
     f.portions.forEach((p) => assert.ok(p.grams > 0, `${f.id}: ${p.label}`));
-    if (f.kcal > 40 && !/cerveza|vino|fernet/.test(f.id)) {
+    if (f.kcal > 40 && !/cerveza|vino|fernet|destilado|sidra|espumante|vermu/.test(f.id)) {
       const atw = f.protein * 4 + f.carbs * 4 + f.fat * 9;
       assert.ok(Math.abs(atw - f.kcal) / f.kcal < 0.2, `${f.id}: ${f.kcal} kcal vs Atwater ${atw.toFixed(0)}`);
     }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Search, Trash2 } from 'lucide-react';
 import type { Food, RecipeItem } from '../../types.ts';
-import { searchBy } from '../../lib/search.ts';
+import { searchFoods } from '../../lib/foodSearch.ts';
 import { per100, scaleMacros, sumMacros } from '../../lib/nutrition.ts';
 import { Button, Field, NumberInput, Stepper, cx, inputCls } from '../../components/ui.tsx';
 import { fmt, fmt1, uid } from '../../lib/format.ts';
@@ -18,7 +18,7 @@ export default function RecipeForm({ foods, initial, onSaved }: { foods: Food[];
 
   // Una receta no puede ser ingrediente de sí misma.
   const pool = useMemo(() => foods.filter((f) => f.id !== initial?.id), [foods, initial?.id]);
-  const results = useMemo(() => (q.trim() ? searchBy(pool, q, (f) => `${f.name} ${f.brand ?? ''}`, (f) => f.tags ?? '', 8) : []), [pool, q]);
+  const results = useMemo(() => (q.trim() ? searchFoods(pool, q, 8) : []), [pool, q]);
 
   const scaled = items.map((it) => scaleMacros(it.per100, it.grams));
   const total = sumMacros(scaled);

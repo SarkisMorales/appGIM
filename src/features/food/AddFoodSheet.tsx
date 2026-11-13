@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Barcode, ChefHat, ChevronLeft, Globe, Loader2, Pencil, Plus, Search, Star, Trash2, Zap, PencilLine, History, UtensilsCrossed } from 'lucide-react';
+import { Barcode, ChefHat, ChevronLeft, ExternalLink, Globe, Loader2, Pencil, Plus, Search, Star, Trash2, Zap, PencilLine, History, UtensilsCrossed } from 'lucide-react';
 import type { EntryDraft, Food, MealId } from '../../types.ts';
 import { useStore, useUI } from '../../store/useStore.ts';
 import { MEALS, mealForNow, useDay } from '../../store/derived.ts';
 import { FOODS } from '../../data/foods.ts';
-import { searchBy } from '../../lib/search.ts';
-import { searchOff } from '../../lib/off.ts';
+import { searchFoods } from '../../lib/foodSearch.ts';
+import { offContributeUrl, searchOff } from '../../lib/off.ts';
 import { per100, scaleMacros, sumMacros } from '../../lib/nutrition.ts';
 import { Button, Chip, Empty, Field, NumberInput, Sheet, cx, inputCls } from '../../components/ui.tsx';
 import { CATEGORY_EMOJI, FoodDetail, type PortionChoice } from './FoodDetail.tsx';
 import CustomFoodForm from './CustomFoodForm.tsx';
-import BarcodeScanner from './BarcodeScanner.tsx';
+import BarcodeScanner, { type MissingProduct } from './BarcodeScanner.tsx';
 import RecipeForm from './RecipeForm.tsx';
 import { dayLabel, todayISO } from '../../lib/dates.ts';
 import { fmt } from '../../lib/format.ts';
 
 type Tab = 'buscar' | 'recientes' | 'favoritos' | 'mios' | 'comidas';
-type View = { v: 'list' } | { v: 'detail'; food: Food } | { v: 'custom'; barcode?: string; name?: string; food?: Food } | { v: 'recipe'; food?: Food } | { v: 'scan' } | { v: 'quick' };
+type View = { v: 'list' } | { v: 'detail'; food: Food } | { v: 'custom'; barcode?: string; name?: string; food?: Food; missing?: MissingProduct } | { v: 'recipe'; food?: Food } | { v: 'scan' } | { v: 'quick' };
 
-const POPULAR = ['huevo', 'pollo-pechuga', 'arroz-blanco', 'banana', 'pan-frances', 'leche-entera', 'yogur-entero', 'manzana', 'avena', 'fideos', 'milanesa-carne-horno', 'cafe-con-leche', 'mate', 'empanada-carne', 'tomate', 'palta'];
+const POPULAR = ['huevo', 'pollo-pechuga', 'arroz-blanco', 'banana', 'pan-frances', 'leche-entera', 'yogur-entero', 'manzana', 'avena', 'fideos', 'milanesa-carne-horno', 'cafe-con-leche', 'mate', 'empanada-carne', 'tomate', 'palta', 'papa-hervida', 'queso-cremoso', 'carne-picada-comun', 'pizza-muzza'];
 
 export function draftFrom(food: Food, c: Pick<PortionChoice, 'amount' | 'portionLabel' | 'qty'>): EntryDraft {
   const p = per100(food);
@@ -95,7 +95,16 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
     recents.forEach((r) => !m.has(r.food.id) && m.set(r.food.id, r.food));
     return m;
   }, [all, recents]);
-  const results = useMemo(() => (q.trim() ? searchBy(all, q, (f) => `${f.name} ${f.brand ?? ''}`, (f) => f.tags ?? '', 40) : []), [all, q]);
+  // Productos con código que ya conocemos (cargados por vos o escaneados antes): se reconocen sin internet.
+  const knownProducts = useMemo(() => [...customFoods, ...recents.map((r) => r.food)].filter((f) => f.barcode), [customFoods, recents]);
+  // Lo que registrás seguido (recientes) y tus favoritos suben en los resultados.
+  const boost = useMemo(() => {
+    const m = new Map<string, number>(POPULAR.map((id) => [id, 1]));
+    recents.forEach((r, i) => m.set(r.food.id, Math.max(1, 3 - i * 0.1)));
+    favorites.forEach((id) => m.set(id, (m.get(id) ?? 0) + 1.5));
+    return m;
+  }, [recents, favorites]);
+  const results = useMemo(() => (q.trim() ? searchFoods(all, q, 40, boost) : []), [all, q, boost]);
 
   const add = (food: Food, c: PortionChoice) => {
     const e = addEntry(date, c.meal, draftFrom(food, c));
@@ -127,6 +136,16 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
       if ((e as Error).name !== 'AbortError') setOff({ status: 'error', items: [], q: term });
     }
   };
+
+  // Si con lo que tenemos guardado hay pocos resultados, buscamos solos en productos de supermercado.
+  const localCount = results.length;
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 3 || localCount >= 4 || (off.q === term && off.status !== 'idle')) return;
+    const t = setTimeout(runOff, 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, localCount]);
 
   const title =
     view.v === 'list' ? (
@@ -261,7 +280,7 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
               </div>
               <div className="mt-3 text-xs font-bold uppercase tracking-wide text-ink-3">Populares</div>
               <div className="divide-y divide-line">
-                {POPULAR.map((id) => byId.get(id))
+                {POPULAR.slice(0, 16).map((id) => byId.get(id))
                   .filter((f): f is Food => !!f)
                   .map((f) => (
                     <FoodRow key={f.id} food={f} onOpen={() => setView({ v: 'detail', food: f })} onQuick={() => quickAdd(f)} />
@@ -397,10 +416,23 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
 
       {view.v === 'custom' && (
         <CustomFoodForm
-          key={view.food?.id ?? 'new'}
+          key={view.food?.id ?? view.barcode ?? 'new'}
           barcode={view.barcode}
           initialName={view.name}
           initial={view.food}
+          draft={view.missing?.draft}
+          notice={
+            view.missing && (
+              <MissingNotice
+                m={view.missing}
+                onSearch={() => {
+                  setQ('');
+                  setView({ v: 'list' });
+                }}
+                onRescan={() => setView({ v: 'scan' })}
+              />
+            )
+          }
           onSaved={(f) => {
             saveCustomFood(f);
             if (view.food) toast('Cambios guardados ✓');
@@ -425,8 +457,8 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
       {view.v === 'scan' && (
         <BarcodeScanner
           onFound={(f) => setView({ v: 'detail', food: f })}
-          onNotFound={(code) => setView({ v: 'custom', barcode: code })}
-          known={customFoods}
+          onMissing={(m) => setView({ v: 'custom', barcode: m.code, missing: m })}
+          known={knownProducts}
         />
       )}
 
@@ -441,6 +473,43 @@ export default function AddFoodSheet({ open, onClose, date, initialMeal }: { ope
         />
       )}
     </Sheet>
+  );
+}
+
+/** Explica por qué un código no trajo datos y qué hacer (con la foto de la etiqueta se completa en segundos). */
+function MissingNotice({ m, onSearch, onRescan }: { m: MissingProduct; onSearch: () => void; onRescan: () => void }) {
+  return (
+    <div className="rounded-2xl bg-warn/10 p-3 text-[13px] leading-snug">
+      {m.draft ? (
+        <>
+          Encontramos <b>{m.draft.name || `el código ${m.code}`}</b>
+          {m.draft.brand ? ` (${m.draft.brand})` : ''} en Open Food Facts, pero <b>sin la tabla nutricional</b>. Completala una vez (podés leerla con la cámara) y la próxima vez lo reconocemos al instante.
+        </>
+      ) : m.instore ? (
+        <>
+          <b className="num">{m.code}</b> es un <b>código de balanza del súper</b> (fiambrería, carnicería, verdulería o panadería): esos códigos los arma cada local y no figuran en ninguna base. Buscá el alimento por nombre (ej: jamón cocido, queso, pan) o cargalo acá.
+        </>
+      ) : (
+        <>
+          El código <b className="num">{m.code}</b> todavía no está en Open Food Facts. Cargalo una vez (sacale una foto a la tabla nutricional y completamos los números) y la próxima vez lo reconocemos al instante.
+        </>
+      )}
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-bold">
+        {m.instore && (
+          <button onClick={onSearch} className="text-food">
+            Buscar por nombre
+          </button>
+        )}
+        <button onClick={onRescan} className="text-food">
+          Escanear de nuevo
+        </button>
+        {!m.instore && (
+          <a href={offContributeUrl(m.code)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-ink-3">
+            Sumarlo a Open Food Facts <ExternalLink size={12} />
+          </a>
+        )}
+      </div>
+    </div>
   );
 }
 

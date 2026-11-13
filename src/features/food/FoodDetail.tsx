@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Heart, Info } from 'lucide-react';
+import { AlertTriangle, Heart, Info } from 'lucide-react';
 import type { Food, MealId } from '../../types.ts';
 import { useStore } from '../../store/useStore.ts';
 import { MEALS } from '../../store/derived.ts';
@@ -33,6 +33,30 @@ export function MacroSplitBar({ protein, carbs, fat, className }: { protein: num
       <div style={{ width: `${s.p * 100}%`, background: 'var(--pro)' }} />
       <div style={{ width: `${s.c * 100}%`, background: 'var(--carb)' }} />
       <div style={{ width: `${s.f * 100}%`, background: 'var(--fat)' }} />
+    </div>
+  );
+}
+
+const NUTRISCORE_COLOR: Record<string, string> = { a: '#038141', b: '#5f9e2f', c: '#c98d00', d: '#d4581d', e: '#c2271b' };
+const NOVA_LABEL: Record<number, string> = { 1: 'Sin procesar', 2: 'Ingrediente culinario', 3: 'Procesado', 4: 'Ultraprocesado' };
+
+/** Fibra, azúcares, grasas saturadas y sodio de la porción elegida (si el alimento los tiene). */
+function NutrientExtras({ food, amount }: { food: Food; amount: number }) {
+  const k = amount / 100;
+  const items = [
+    food.fiber ? { l: 'Fibra', v: `${fmt1(food.fiber * k)} g` } : null,
+    food.sugar != null ? { l: 'Azúcares', v: `${fmt1(food.sugar * k)} g` } : null,
+    food.satFat != null ? { l: 'Grasas sat.', v: `${fmt1(food.satFat * k)} g` } : null,
+    food.sodium != null ? { l: 'Sodio', v: `${fmt(food.sodium * k)} mg` } : null,
+  ].filter((x): x is { l: string; v: string } => !!x);
+  if (!items.length) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-line pt-2 text-xs text-ink-2">
+      {items.map((x) => (
+        <span key={x.l}>
+          <span className="text-ink-3">{x.l}</span> <b className="num">{x.v}</b>
+        </span>
+      ))}
     </div>
   );
 }
@@ -86,6 +110,20 @@ export function FoodDetail({
             {food.brand ? `${food.brand} · ` : ''}
             {fmt(food.kcal)} kcal cada 100 {unit}
           </div>
+          {(food.nutriscore || food.nova) && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {food.nutriscore && (
+                <span className="rounded-md px-1.5 py-0.5 text-[11px] font-extrabold uppercase text-white" style={{ background: NUTRISCORE_COLOR[food.nutriscore] }} title="Nutri-Score: calidad nutricional de A (mejor) a E">
+                  Nutri-Score {food.nutriscore}
+                </span>
+              )}
+              {food.nova && (
+                <span className={cx('rounded-md px-1.5 py-0.5 text-[11px] font-bold', food.nova === 4 ? 'bg-danger/10 text-danger' : 'bg-surface-3 text-ink-2')} title="NOVA: grado de procesamiento">
+                  {NOVA_LABEL[food.nova]}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <button aria-label={fav ? 'Quitar de favoritos' : 'Agregar a favoritos'} onClick={() => toggleFavorite(food.id)} className={cx('flex h-10 w-10 items-center justify-center rounded-full', fav ? 'bg-pro/15 text-pro' : 'bg-surface-2 text-ink-3')}>
           <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
@@ -147,6 +185,7 @@ export function FoodDetail({
             ))}
           </div>
         )}
+        <NutrientExtras food={food} amount={amount} />
         {after != null && (
           <div className={cx('mt-2 text-xs font-semibold', after < 0 ? 'text-danger' : 'text-ink-3')}>
             {after >= 0 ? `Te quedarían ${fmt(after)} kcal en el día` : `Te pasarías ${fmt(-after)} kcal de tu objetivo`}
@@ -165,6 +204,12 @@ export function FoodDetail({
       <Button variant="food" size="lg" block className="mt-4" disabled={amount <= 0} onClick={() => onConfirm({ amount, portionLabel: mode >= 0 ? portions[mode].label : undefined, qty: mode >= 0 ? qty : 1, meal })}>
         {confirmLabel}
       </Button>
+      {food.dataNote && (
+        <p className="mt-3 flex items-start gap-1.5 rounded-xl bg-warn/10 p-2.5 text-[12px] text-ink-2">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warn" />
+          {food.dataNote}
+        </p>
+      )}
       {food.source !== 'custom' && (
         <p className="mt-3 flex items-start gap-1.5 text-[11px] text-ink-3">
           <Info size={12} className="mt-0.5 shrink-0" />

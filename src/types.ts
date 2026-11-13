@@ -70,6 +70,11 @@ export interface Food {
   carbs: number;
   fat: number;
   fiber?: number;
+  /** Azúcares totales (g cada 100). */
+  sugar?: number;
+  /** Grasas saturadas (g cada 100). */
+  satFat?: number;
+  /** Sodio en mg cada 100. */
   sodium?: number;
   unit: 'g' | 'ml';
   portions: Portion[];
@@ -78,6 +83,11 @@ export interface Food {
   fdcId?: number;
   barcode?: string;
   image?: string;
+  /** Productos: Nutri-Score (a–e) y grado de procesamiento NOVA (1–4) según Open Food Facts. */
+  nutriscore?: string;
+  nova?: number;
+  /** Aviso si los datos del producto parecen incompletos o con errores. */
+  dataNote?: string;
   /** Si el alimento es una receta propia: ingredientes y porciones que rinde. */
   recipe?: Recipe;
 }
