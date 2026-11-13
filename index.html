@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>appGIM · Comida + Entrenamiento</title>
+    <meta name="description" content="Registrá tu comida y tus entrenamientos en un solo lugar. Rutinas por nivel con animaciones, calorías, proteínas y tiempos calculados. Gratis, offline y sin cuentas." />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="theme-color" content="#F4F5F7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B0D12" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="appGIM" />
+    <script>
+      // Aplica el tema antes de pintar para evitar parpadeo.
+      (function () {
+        try {
+          var raw = localStorage.getItem('appgim-v1');
+          var theme = raw ? (JSON.parse(raw).state || {}).settings?.theme : 'system';
+          var dark = theme === 'dark' || ((!theme || theme === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-DqZr-36C.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-BCiCTKAo.js">
+    <link rel="modulepreload" crossorigin href="./assets/ui-Bv4-D-5e.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-BfE7fHEv.css">
+  <link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
